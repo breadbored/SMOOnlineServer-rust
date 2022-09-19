@@ -10,6 +10,17 @@
 1. Run `cargo build` to build the project
 1. Run `./target/debug/smo-rusty-online` to start the server
 
+Alternatively, there is a Docker container:
+
+1. Install Docker
+1. Just run `docker compose up`
+
+If your Docker source hasn't rolled `compose` into `docker`:
+
+1. Install Docker
+1. Install Docker-Compose
+1. Run `docker-compose up` with the hyphen
+
 ## Road Map
 
 Because this is starting as a port, these are the features that need to be implemented to be compatible with the current version of SMO Online:
@@ -25,7 +36,7 @@ Because this is starting as a port, these are the features that need to be imple
 Features I would like to add to the road map would be:
 
 - [ ] Refactor the server and fork the SMO Online mod to support UDP packets with a TCP channel for state sync only
-- [ ] Docker container
+- [x] Docker container & Docker compose
 - [ ] Full Discord Integration as the authors of the official server continue to work on it
 
 ## What it looks like currently
