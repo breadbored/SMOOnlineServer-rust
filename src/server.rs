@@ -9,7 +9,6 @@ use crate::{packet::packets::{
     CostumePacket::CostumePacket
 }, client::Client};
 
-
 pub struct Server<'a> {
     pub clients: Vec<Client<'a>>
 }
