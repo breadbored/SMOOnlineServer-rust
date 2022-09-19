@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  smorust:
+    build: .
+    container_name: smorust
+    volumes:
+      - .:/code
+    expose:
+      - "1027"
+    ports:
+      - "1027:1027"
