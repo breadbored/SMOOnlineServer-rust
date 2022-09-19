@@ -1,0 +1,29 @@
+[package]
+name = "smo-rusty-online"
+description = "Unofficial Super Mario Odyssey Online server, only compatible with CraftyBoss's SMO Switch mod"
+version = "0.1.0"
+edition = "2021"
+categories = ["games"]
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+vmap = { version = "0.5.1" }
+safe-transmute = { version = "0.11.2" }
+nalgebra = { version = "0.8.2" }
+chashmap = { version = "2.2.2" }
+chrono = { version = "0.4.0" }
+async-trait = { version = "0.1.57" }
+
+[dependencies.uuid]
+version = "1.1.2"
+features = [
+    "v4",                # Lets you generate random UUIDs
+    "fast-rng",          # Use a faster (but still sufficiently random) RNG
+    "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+]
+
+# Temporary fix for:
+# Fatal: error in validating input
+# during build.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
