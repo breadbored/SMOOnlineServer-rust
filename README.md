@@ -10,7 +10,7 @@
 1. Run `cargo build` to build the project
 1. Run `./target/debug/smo-rusty-online` to start the server
 
-## Roadmap
+## Road Map
 
 Because this is starting as a port, these are the features that need to be implemented to be compatible with the current version of SMO Online:
 
@@ -22,8 +22,12 @@ Because this is starting as a port, these are the features that need to be imple
 - [ ] Command Handler
 - [ ] Minimal Discord Integration, if any
 
-Features I would like to add to the roadmap would be:
+Features I would like to add to the road map would be:
 
 - [ ] Refactor the server and fork the SMO Online mod to support UDP packets with a TCP channel for state sync only
 - [ ] Docker container
-- [ ] Full Discord Integration as the authors of the official server continue
+- [ ] Full Discord Integration as the authors of the official server continue to work on it
+
+## What it looks like currently
+
+Running the server and connecting via the [Super Mario Online Mod](https://github.com/CraftyBoss/SuperMarioOdysseyOnline) on Nintendo Switch currently creates a character with your name and it follows you around with a small delay. This is a result of the TCP Sockets currently echoing back any response it receives until the command handler and client/server are finished.
