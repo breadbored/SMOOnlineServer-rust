@@ -33,7 +33,7 @@ async fn main() -> Result<()> {
 }
 
 async fn handle_socket(mut socket: TcpStream) {
-    let mut buffer = [0; 128];
+    let mut buffer: [u8; 128] = [0; 128];
     // In a loop, read data from the socket and write the data back.
     loop {
         let n = socket
