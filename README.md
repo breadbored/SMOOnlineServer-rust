@@ -17,7 +17,7 @@ Because this is starting as a port, these are the features that need to be imple
 - [x] TCP Sockets
 - [x] Packet Serialization
 - [x] Packet Deserialization
-- [-] Client
+- [ ] Client (in progress)
 - [ ] Server
 - [ ] Command Handler
 - [ ] Minimal Discord Integration, if any
