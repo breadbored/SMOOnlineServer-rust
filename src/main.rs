@@ -42,7 +42,7 @@ async fn handle_socket(mut socket: TcpStream) {
             .expect("failed to read data from socket");
 
         if n == 0 {
-            return;
+            continue;
         }
 
         let mut temp_buffer = &buffer[0..n];
