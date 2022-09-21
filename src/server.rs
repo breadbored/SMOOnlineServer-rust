@@ -33,9 +33,7 @@ impl ServerWrapper {
             println!("new client: {:?}", socket_addr.to_string());
 
             let local_server = server.clone();
-            tokio::spawn(async move {
-                ServerWrapper::handle_socket(local_server, socket)
-            });
+            tokio::spawn(ServerWrapper::handle_socket(local_server, socket));
 
             // Trick the compiler into thinking this eventually responds with Okay(())
             if false {
@@ -61,7 +59,7 @@ impl ServerWrapper {
     
             let mut temp_buffer = &buffer[0..n];
     
-            print!("{:?}", temp_buffer);
+            // print!("{:?}\n", temp_buffer);
     
             socket
                 .write_all(temp_buffer)
