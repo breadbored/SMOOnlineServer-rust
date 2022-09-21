@@ -7,11 +7,8 @@ pub struct IPacket<T> {
 
 pub trait IPacketTrait<T = [u8; 128]> {
     fn new() -> Self;
-    fn serialize(&self) -> T {
-        let data: T;
-        return data;
-    }
-    fn deserialize(&mut self, data: &[u8]) {}
+    fn serialize(&self) -> T;
+    fn deserialize(&mut self, data: &[u8]);
     fn byte_to_bool(&self, data: u8) -> bool {
         return data != 0x0;
     }
