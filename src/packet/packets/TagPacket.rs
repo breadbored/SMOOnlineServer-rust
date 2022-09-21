@@ -20,6 +20,7 @@ const SIZE: usize = 6;
 impl IPacketTrait<[u8; SIZE]> for IPacket<TagPacket> {
     fn new() -> Self {
         IPacket {
+            packet_size: SIZE,
             packet: TagPacket {
                 update_type: TagUpdate::Time,
                 is_it: false,
@@ -42,7 +43,7 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<TagPacket> {
 
         return returning_data;
     }
-    fn deserialize(mut self, data: &mut [u8]) {
+    fn deserialize(&mut self, data: &[u8]) {
         if data[0] == 1 {
             self.packet.update_type = TagUpdate::Time;
         } else if data[0] == 2 {

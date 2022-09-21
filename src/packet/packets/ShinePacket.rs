@@ -11,6 +11,7 @@ const SIZE: usize = 4;
 impl IPacketTrait<[u8; SIZE]> for IPacket<ShinePacket> {
     fn new() -> Self {
         IPacket {
+            packet_size: SIZE,
             packet: ShinePacket {
                 shine_id: 0
             }
@@ -19,7 +20,7 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<ShinePacket> {
     fn serialize(&self) -> [u8; SIZE] {
         return u32::to_ne_bytes(self.packet.shine_id);
     }
-    fn deserialize(mut self, data: &mut [u8]) {
+    fn deserialize(&mut self, data: &[u8]) {
         let mut arr: [u8; SIZE] = [0; SIZE];
         arr.copy_from_slice(data);
         self.packet.shine_id = u32::from_ne_bytes(arr);

@@ -2,6 +2,7 @@ mod packet;
 mod server;
 mod client;
 use mempool::Pool;
+use packet::packets::{IPacket, CapPacket::CapPacket};
 use server::{Server, ServerWrapper};
 use tokio::{
     net::TcpListener,

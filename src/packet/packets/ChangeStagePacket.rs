@@ -16,6 +16,7 @@ const STAGE_SIZE: usize = 0x30;
 impl IPacketTrait<[u8; SIZE]> for IPacket<ChangeStagePacket> {
     fn new() -> Self {
         IPacket {
+            packet_size: SIZE,
             packet: ChangeStagePacket {
                 stage: "".to_string(),
                 id: "".to_string(),
@@ -34,7 +35,7 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<ChangeStagePacket> {
 
         return returning_data;
     }
-    fn deserialize(mut self, data: &mut [u8]) {
+    fn deserialize(&mut self, data: &[u8]) {
         self.packet.stage = self.bytes_to_string(&data[..STAGE_SIZE]);
         self.packet.id = self.bytes_to_string(&data[STAGE_SIZE..(ID_SIZE + STAGE_SIZE)]);
         self.packet.scenario = i8::from_ne_bytes([data[(ID_SIZE + STAGE_SIZE)]; 1]);

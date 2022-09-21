@@ -15,6 +15,7 @@ const STAGE_SIZE: usize = 0x40;
 impl IPacketTrait<[u8; SIZE]> for IPacket<GamePacket> {
     fn new() -> Self {
         IPacket {
+            packet_size: SIZE,
             packet: GamePacket {
                 is_2d: false,
                 scenario_num: 0,
@@ -29,7 +30,7 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<GamePacket> {
         returning_data[2..].copy_from_slice(&self.string_to_bytes::<STAGE_SIZE>(self.packet.stage.to_string()));
         return returning_data;
     }
-    fn deserialize(mut self, data: &mut [u8]) {
+    fn deserialize(&mut self, data: &[u8]) {
         self.packet.is_2d = self.byte_to_bool(data[0]);
         self.packet.scenario_num = data[1];
         self.packet.stage = self.bytes_to_string(&data[2..(2 + STAGE_SIZE)]);

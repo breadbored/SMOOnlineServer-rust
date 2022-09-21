@@ -39,6 +39,7 @@ fn as_u32_ne(array: &[u8; ANIMATION_WEIGHT_SIZE * FLOAT32_SIZE]) -> [f32; ANIMAT
 impl IPacketTrait<[u8; SIZE]> for IPacket<PlayerPacket> {
     fn new() -> Self {
         IPacket {
+            packet_size: SIZE,
             packet: PlayerPacket {
                 position: Vector3::new(0.0,0.0,0.0),
                 rotation: Quaternion::new(0.0,0.0,0.0,0.0),
@@ -60,7 +61,7 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<PlayerPacket> {
 
         return returning_data;
     }
-    fn deserialize(mut self, data: &mut [u8]) {
+    fn deserialize(&mut self, data: &[u8]) {
         self.packet.position = self.bytes_to_vec3(&data[..12]);
         self.packet.rotation = self.bytes_to_quad(&data[12..28]);
 

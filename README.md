@@ -28,8 +28,8 @@ Because this is starting as a port, these are the features that need to be imple
 - [x] TCP Sockets
 - [x] Packet Serialization
 - [x] Packet Deserialization
-- [ ] Client (in progress)
-- [ ] Server
+- [ ] Client (in progress; needs to serialize packets)
+- [ ] Server (in progress; can send and receive data; needs to init Clients)
 - [ ] Command Handler
 - [ ] Minimal Discord Integration, if any
 

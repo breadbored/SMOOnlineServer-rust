@@ -1,5 +1,4 @@
 use std::sync::{Arc};
-
 use tokio::{
     net::{
         TcpStream,
@@ -13,7 +12,22 @@ use tokio::{
     sync::Mutex
 };
 use mempool::Pool;
-use crate::client::Client;
+use crate::{
+    client::Client,
+    packet::{
+        PacketHeader::{
+            PacketHeader,
+            SIZE as PACKET_HEADER_SIZE
+        },
+        packets::{
+            IPacket::{
+                IPacket,
+                IPacketTrait,
+            },
+            CapPacket::CapPacket,
+        }
+    }
+};
 
 pub struct ServerWrapper {
     
@@ -66,5 +80,13 @@ impl ServerWrapper {
                 .await
                 .expect("failed to write data to socket");
         }
+    }
+
+    pub fn fill_packet<T: IPacketTrait> (packet_header: &mut IPacket<PacketHeader>, packet: &mut T, memory: Pool<[u8; 1024]>)
+    {
+        let data: &[u8; 1024] = memory.get();
+        
+        packet_header.deserialize(&data[..PACKET_HEADER_SIZE]);
+        packet.deserialize(&data[PACKET_HEADER_SIZE..]);
     }
 }

@@ -20,6 +20,7 @@ const NAME_SIZE: usize = 0x20;
 impl IPacketTrait<[u8; SIZE]> for IPacket<ConnectPacket> {
     fn new() -> Self {
         IPacket {
+            packet_size: SIZE,
             packet: ConnectPacket {
                 connection_type: ConnectionTypes::FirstConnection,
                 max_players: 0,
@@ -41,7 +42,7 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<ConnectPacket> {
 
         return returning_data;
     }
-    fn deserialize(mut self, data: &mut [u8]) {
+    fn deserialize(&mut self, data: &[u8]) {
         let mut connection_type_bytes: [u8; 4] = [0; 4];
         connection_type_bytes.copy_from_slice(&data[..4]);
         if u32::from_ne_bytes(connection_type_bytes) == 0 {

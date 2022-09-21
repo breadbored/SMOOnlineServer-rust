@@ -16,6 +16,7 @@ const NAME_SIZE: usize = 0x30;
 impl IPacketTrait<[u8; SIZE]> for IPacket<CapPacket> {
     fn new() -> Self {
         IPacket {
+            packet_size: SIZE,
             packet: CapPacket {
                 position: Vector3::new(0.0,0.0,0.0),
                 rotation: Quaternion::new(0.0,0.0,0.0,0.0),
@@ -37,7 +38,7 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<CapPacket> {
 
         return returning_data;
     }
-    fn deserialize(mut self, data: &mut [u8]) {
+    fn deserialize(&mut self, data: &[u8]) {
         self.packet.position = self.bytes_to_vec3(&data[..12]);
         self.packet.rotation = self.bytes_to_quad(&data[12..28]);
         
