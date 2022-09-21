@@ -1,3 +1,5 @@
+use std::sync::{Arc};
+
 use tokio::{
     net::{
         TcpStream,
@@ -7,39 +9,32 @@ use tokio::{
         AsyncReadExt,
         AsyncWriteExt,
         Result
-    }
+    },
+    sync::Mutex
 };
 use mempool::Pool;
 use crate::client::Client;
 
-pub struct Server<'a> {
+pub struct ServerWrapper {
+    
+}
+
+pub struct Server {
     pub listener: TcpListener,
-    pub clients: Vec<Client<'a>>,
+    pub clients: Vec<Arc<Mutex<Client>>>,
     pub mempool: Pool<[u8; 1024]>,
 }
 
-pub trait ServerTraits {
-    fn new(listener: TcpListener) -> Self;
-}
-
-impl ServerTraits for Server<'_> {
-    fn new(listener: TcpListener) -> Self {
-        Server {
-            listener: listener,
-            clients: vec![],
-            mempool: Pool::new(Box::new(|| [0; 1024])),
-        }
-    }
-}
-impl Server<'_> {
-    pub async fn start(&self) -> Result<()> {
+impl ServerWrapper {
+    pub async fn start(server: Arc<Mutex<Server>>) -> Result<()> {
         // Loop until new connection is made and spawn an async event loop
         loop {
-            let (mut socket, socket_addr) = self.listener.accept().await?;
+            let (mut socket, socket_addr) = server.lock().await.listener.accept().await?;
             println!("new client: {:?}", socket_addr.to_string());
 
+            let local_server = server.clone();
             tokio::spawn(async move {
-                Server::handle_socket(socket).await;
+                ServerWrapper::handle_socket(local_server, socket)
             });
 
             // Trick the compiler into thinking this eventually responds with Okay(())
@@ -47,10 +42,11 @@ impl Server<'_> {
                 break
             };
         }
+
         return Ok(())
     }
 
-    async fn handle_socket(mut socket: TcpStream) {
+    async fn handle_socket(server: Arc<Mutex<Server>>, mut socket: TcpStream) {
         let mut buffer: [u8; 128] = [0; 128];
         // In a loop, read data from the socket and write the data back.
         loop {

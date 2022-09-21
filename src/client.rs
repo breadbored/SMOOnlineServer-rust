@@ -1,5 +1,5 @@
 
-use std::{net::TcpStream, cell::RefCell, rc::Weak, hash::{Hash, Hasher}, collections::hash_map::DefaultHasher};
+use std::{net::TcpStream, hash::{Hash, Hasher}, collections::hash_map::DefaultHasher, sync::{Arc, Mutex}};
 use async_trait::async_trait;
 use uuid::Uuid;
 use chrono::{
@@ -28,25 +28,25 @@ pub struct Metadata {
     pub time: Time,
 }
 
-pub struct Client<'a> {
+pub struct Client {
     pub metadata: Metadata,
     pub connected: bool,
     pub current_costume: Option<CostumePacket>,
     pub name: String,
     pub id: Uuid,
     pub socket: TcpStream,
-    pub server: Option<Weak<RefCell<Server<'a>>>>,
+    // pub server: &'a Arc<Mutex<Server<'a>>>,
 }
 
 #[async_trait]
 pub trait ClientTraits {
-    fn new(socket: TcpStream) -> Client<'static>;
+    fn new(server: Arc<Mutex<Server>>, socket: TcpStream) -> Client;
     async fn send<IPacket>(packet: IPacket, sender: Client);
     async fn send_raw_data<const SIZE: usize>(data: [u8; SIZE], sender: Client);
     fn get_hash_code(&self) -> u64;
 }
 
-impl PartialEq for Client<'_> {
+impl PartialEq for Client {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
@@ -55,8 +55,8 @@ impl PartialEq for Client<'_> {
     }
 }
 
-impl ClientTraits for Client<'_> {
-    fn new(socket: TcpStream) -> Client<'static> {
+impl ClientTraits for Client {
+    fn new(server: Arc<Mutex<Server>>, socket: TcpStream) -> Client {
         Client {
             metadata: Metadata {
                 shine_sync: vec![],
@@ -81,7 +81,7 @@ impl ClientTraits for Client<'_> {
             current_costume: None,
             name: "".to_string(),
             id: Uuid::new_v4(),
-            server: None,
+            // server: &server,
         }
     }
 

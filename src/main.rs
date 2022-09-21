@@ -1,17 +1,30 @@
 mod packet;
 mod server;
 mod client;
-use server::{Server, ServerTraits};
-use tokio::net::TcpListener;
-use std::io::Result;
+use mempool::Pool;
+use server::{Server, ServerWrapper};
+use tokio::{
+    net::TcpListener,
+    sync::Mutex
+};
+use std::{io::Result, sync::{Arc}};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let addr = "0.0.0.0:1027";
+    let addr: &str = "0.0.0.0:1027";
     let listener: TcpListener = TcpListener::bind(addr).await.unwrap();
 
-    let server = Server::new(listener);
+    let server: Arc<Mutex<Server>> = Arc::new(
+        Mutex::new(
+            Server {
+                listener: listener,
+                clients: vec![],
+                mempool: Pool::new(Box::new(|| [0; 1024])),
+            }
+        )
+    );
     
-    server.start().await?;
+    ServerWrapper::start(server).await?;
+
     Ok(())
 }
