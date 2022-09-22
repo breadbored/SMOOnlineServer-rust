@@ -20,6 +20,7 @@ const NAME_SIZE: usize = 0x20;
 impl IPacketTrait<[u8; SIZE]> for IPacket<ConnectPacket> {
     fn new() -> Self {
         IPacket {
+            packet_key: "ConnectPacket".to_string(),
             packet_size: SIZE,
             packet: ConnectPacket {
                 connection_type: ConnectionTypes::FirstConnection,
@@ -27,6 +28,12 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<ConnectPacket> {
                 client_name: "?????".to_string(),
             }
         }
+    }
+    fn get_name(&self) -> &str {
+        self.packet_key.as_str()
+    }
+    fn get_size(&self) -> &usize {
+        &self.packet_size
     }
     fn serialize(&self) -> [u8; SIZE] {
         let mut returning_data: [u8; SIZE] = [0x0; SIZE];

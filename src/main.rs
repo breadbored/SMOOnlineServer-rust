@@ -1,6 +1,8 @@
 mod packet;
 mod server;
 mod client;
+mod constants;
+mod settings;
 use mempool::Pool;
 use packet::packets::{IPacket, CapPacket::CapPacket};
 use server::{Server, ServerWrapper};

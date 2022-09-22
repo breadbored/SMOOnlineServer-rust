@@ -18,6 +18,7 @@ pub const SIZE: usize = 20;
 impl IPacketTrait<[u8; SIZE]> for IPacket<PacketHeader> {
     fn new() -> Self {
         IPacket {
+            packet_key: "PacketHeader".to_string(),
             packet_size: SIZE,
             packet: PacketHeader {
                 id: Uuid::new_v4(),
@@ -25,6 +26,12 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<PacketHeader> {
                 packet_size: 0
             }
         }
+    }
+    fn get_name(&self) -> &str {
+        self.packet_key.as_str()
+    }
+    fn get_size(&self) -> &usize {
+        &self.packet_size
     }
     fn serialize(&self) -> [u8; SIZE] {
         let mut returning_data: [u8; SIZE] = [0x0; SIZE];

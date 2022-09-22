@@ -13,12 +13,19 @@ const SIZE: usize = COSTUME_SIZE * 2;
 impl IPacketTrait<[u8; SIZE]> for IPacket<CostumePacket> {
     fn new() -> Self {
         IPacket {
+            packet_key: "CostumePacket".to_string(),
             packet_size: SIZE,
             packet: CostumePacket {
                 body_name: "".to_string(),
                 cap_name: "".to_string(),
             }
         }
+    }
+    fn get_name(&self) -> &str {
+        self.packet_key.as_str()
+    }
+    fn get_size(&self) -> &usize {
+        &self.packet_size
     }
     fn serialize(&self) -> [u8; SIZE] {
         let mut returning_data: [u8; SIZE] = [0x0; SIZE];

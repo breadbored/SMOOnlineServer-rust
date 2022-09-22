@@ -16,6 +16,7 @@ const STAGE_SIZE: usize = 0x30;
 impl IPacketTrait<[u8; SIZE]> for IPacket<ChangeStagePacket> {
     fn new() -> Self {
         IPacket {
+            packet_key: "ChangeStagePacket".to_string(),
             packet_size: SIZE,
             packet: ChangeStagePacket {
                 stage: "".to_string(),
@@ -24,6 +25,12 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<ChangeStagePacket> {
                 sub_scenario_type: 0,
             }
         }
+    }
+    fn get_name(&self) -> &str {
+        self.packet_key.as_str()
+    }
+    fn get_size(&self) -> &usize {
+        &self.packet_size
     }
     fn serialize(&self) -> [u8; SIZE] {
         let mut returning_data: [u8; SIZE] = [0x0; SIZE];

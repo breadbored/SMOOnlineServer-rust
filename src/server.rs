@@ -13,7 +13,10 @@ use tokio::{
 };
 use mempool::Pool;
 use crate::{
-    client::Client,
+    client::{
+        Client,
+        ClientTraits
+    },
     packet::{
         PacketHeader::{
             PacketHeader,
@@ -23,9 +26,14 @@ use crate::{
             IPacket::{
                 IPacket,
                 IPacketTrait,
-            },
-            CapPacket::CapPacket,
+            }, InitPacket::InitPacket,
         }
+    },
+    constants::{
+        packet_to_type_map
+    },
+    settings::{
+        MAX_PLAYERS
     }
 };
 
@@ -59,6 +67,13 @@ impl ServerWrapper {
     }
 
     async fn handle_socket(server: Arc<Mutex<Server>>, mut socket: TcpStream) {
+        let client = Arc::new(
+            Mutex::new(
+                Client::new(&server)
+            )
+        );
+        server.lock().await.clients.push(client);
+
         let mut buffer: [u8; 128] = [0; 128];
         // In a loop, read data from the socket and write the data back.
         loop {
@@ -73,7 +88,13 @@ impl ServerWrapper {
     
             let mut temp_buffer = &buffer[0..n];
     
-            // print!("{:?}\n", temp_buffer);
+            let mut init_packet = IPacket::<InitPacket>::new();
+            init_packet.packet.max_players = MAX_PLAYERS;
+
+            // client.lock().await.send::<, IPacket<InitPacket>>(
+            //     socket, 
+            //     init_packet
+            // );
     
             socket
                 .write_all(temp_buffer)
@@ -83,10 +104,35 @@ impl ServerWrapper {
     }
 
     pub fn fill_packet<T: IPacketTrait> (packet_header: &mut IPacket<PacketHeader>, packet: &mut T, memory: Pool<[u8; 1024]>)
+    where T: Copy + IPacketTrait
     {
         let data: &[u8; 1024] = memory.get();
         
         packet_header.deserialize(&data[..PACKET_HEADER_SIZE]);
         packet.deserialize(&data[PACKET_HEADER_SIZE..]);
+    }
+
+    pub async fn broadcast<T: IPacketTrait>(server: Server, packet: &mut T, client: Option<Client>)
+    where T: Copy + IPacketTrait
+    {
+        let memory: Pool<[u8; 1024]> = server.mempool;
+        match client {
+            Some(c) => {
+                let packet_type_name = packet.get_name().clone();
+                let packet_size_usize = packet.get_size().to_owned();
+                let packet_type = packet_to_type_map(&packet_type_name);
+                let packet_size = packet_size_usize as i16;
+                
+                let mut packet_header = IPacket::<PacketHeader>::new();
+                packet_header.packet.id = c.id;
+                packet_header.packet.packet_type = packet_type;
+                packet_header.packet.packet_size = packet_size;
+                
+                ServerWrapper::fill_packet::<T>(&mut packet_header, packet, memory);
+            },
+            None => {
+
+            }
+        }
     }
 }

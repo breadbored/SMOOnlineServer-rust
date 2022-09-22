@@ -20,6 +20,7 @@ const SIZE: usize = 6;
 impl IPacketTrait<[u8; SIZE]> for IPacket<TagPacket> {
     fn new() -> Self {
         IPacket {
+            packet_key: "TagPacket".to_string(),
             packet_size: SIZE,
             packet: TagPacket {
                 update_type: TagUpdate::Time,
@@ -28,6 +29,12 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<TagPacket> {
                 minutes: 0,
             }
         }
+    }
+    fn get_name(&self) -> &str {
+        self.packet_key.as_str()
+    }
+    fn get_size(&self) -> &usize {
+        &self.packet_size
     }
     fn serialize(&self) -> [u8; SIZE] {
         let mut returning_data: [u8; SIZE] = [0x0; SIZE];

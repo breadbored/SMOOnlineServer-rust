@@ -1,0 +1,1 @@
+pub const MAX_PLAYERS: u16 = 8;

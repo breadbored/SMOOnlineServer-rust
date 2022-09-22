@@ -16,6 +16,7 @@ const NAME_SIZE: usize = 0x30;
 impl IPacketTrait<[u8; SIZE]> for IPacket<CapPacket> {
     fn new() -> Self {
         IPacket {
+            packet_key: "CapPacket".to_string(),
             packet_size: SIZE,
             packet: CapPacket {
                 position: Vector3::new(0.0,0.0,0.0),
@@ -24,6 +25,12 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<CapPacket> {
                 cap_animation: "".to_string(),
             }
         }
+    }
+    fn get_name(&self) -> &str {
+        self.packet_key.as_str()
+    }
+    fn get_size(&self) -> &usize {
+        &self.packet_size
     }
     fn serialize(&self) -> [u8; SIZE] {
         let mut returning_data: [u8; SIZE] = [0x0; SIZE];

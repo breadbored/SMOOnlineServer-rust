@@ -1,6 +1,7 @@
 
-use std::{net::TcpStream, hash::{Hash, Hasher}, collections::hash_map::DefaultHasher, sync::{Arc, Mutex}};
+use std::{hash::{Hash, Hasher}, collections::hash_map::DefaultHasher, sync::{Arc}};
 use async_trait::async_trait;
+use tokio::{sync::Mutex, net::TcpStream, io::AsyncWriteExt};
 use uuid::Uuid;
 use chrono::{
     DateTime,
@@ -8,7 +9,7 @@ use chrono::{
 };
 use crate::{packet::packets::{
     GamePacket::{GamePacket},
-    CostumePacket::CostumePacket
+    CostumePacket::CostumePacket, IPacket::IPacketTrait
 }, server::Server};
 
 pub struct Time {
@@ -34,15 +35,12 @@ pub struct Client {
     pub current_costume: Option<CostumePacket>,
     pub name: String,
     pub id: Uuid,
-    pub socket: TcpStream,
     // pub server: &'a Arc<Mutex<Server<'a>>>,
 }
 
 #[async_trait]
 pub trait ClientTraits {
-    fn new(server: Arc<Mutex<Server>>, socket: TcpStream) -> Client;
-    async fn send<IPacket>(packet: IPacket, sender: Client);
-    async fn send_raw_data<const SIZE: usize>(data: [u8; SIZE], sender: Client);
+    fn new(server: &Arc<Mutex<Server>>) -> Client;
     fn get_hash_code(&self) -> u64;
 }
 
@@ -56,7 +54,7 @@ impl PartialEq for Client {
 }
 
 impl ClientTraits for Client {
-    fn new(server: Arc<Mutex<Server>>, socket: TcpStream) -> Client {
+    fn new(server: &Arc<Mutex<Server>>) -> Client {
         Client {
             metadata: Metadata {
                 shine_sync: vec![],
@@ -76,7 +74,6 @@ impl ClientTraits for Client {
                     when: Utc::now(),
                 }
             },
-            socket,
             connected: false,
             current_costume: None,
             name: "".to_string(),
@@ -85,19 +82,23 @@ impl ClientTraits for Client {
         }
     }
 
-    fn send< 'async_trait, IPacket>(packet: IPacket, sender: Client) ->  core::pin::Pin<Box<dyn core::future::Future<Output = ()> + core::marker::Send+ 'async_trait> >where IPacket: 'async_trait+  {
-        // Need to implement Server before implementing this
-        todo!()
-    }
-
-    fn send_raw_data< 'async_trait, const SIZE: usize>(data: [u8; SIZE], sender: Client) ->  core::pin::Pin<Box<dyn core::future::Future<Output = ()> + core::marker::Send+ 'async_trait> >  {
-        // Need to implement Server before implementing this
-        todo!()
-    }
-
     fn get_hash_code(&self) -> u64 {
         let mut hasher = DefaultHasher::new();
         self.id.hash(&mut hasher);
         return hasher.finish();
+    }
+}
+
+impl Client {
+    pub async fn send<T: IPacketTrait>(&mut self, mut socket: TcpStream, packet: T)
+    {
+        socket
+            .write_all(packet.serialize().as_slice())
+            .await
+            .expect("failed to write data to socket");
+    }
+
+    pub async fn send_raw_data<const SIZE: usize>(&mut self, data: [u8; SIZE]) {
+
     }
 }
