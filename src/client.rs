@@ -35,12 +35,11 @@ pub struct Client {
     pub current_costume: Option<CostumePacket>,
     pub name: String,
     pub id: Uuid,
-    // pub server: &'a Arc<Mutex<Server<'a>>>,
 }
 
 #[async_trait]
 pub trait ClientTraits {
-    fn new(server: &Arc<Mutex<Server>>) -> Client;
+    fn new() -> Client;
     fn get_hash_code(&self) -> u64;
 }
 
@@ -54,7 +53,7 @@ impl PartialEq for Client {
 }
 
 impl ClientTraits for Client {
-    fn new(server: &Arc<Mutex<Server>>) -> Client {
+    fn new() -> Client {
         Client {
             metadata: Metadata {
                 shine_sync: vec![],
@@ -93,7 +92,7 @@ impl Client {
     pub async fn send<T: IPacketTrait>(&mut self, socket: &mut TcpStream, packet: T)
     {
         let packet_size: usize = packet.get_size().to_owned();
-        print!("{:?}", &packet.serialize()[..packet_size]);
+        println!("{:?}", &packet.serialize()[..packet_size]);
         socket
             .write_all(&packet.serialize()[..packet_size])
             .await

@@ -54,7 +54,12 @@ impl ServerWrapper {
             let (mut socket, socket_addr) = server.lock().await.listener.accept().await?;
             println!("new client: {:?}", socket_addr.to_string());
 
-            tokio::spawn(ServerWrapper::handle_socket(server.clone(), socket));
+            let local_server = server.clone();
+            println!("before Tokio Spawn");
+            tokio::spawn(async move { 
+                println!("Tokio Spawn");
+                ServerWrapper::handle_socket(local_server.clone(), socket).await 
+            });
 
             // Trick the compiler into thinking this eventually responds with Okay(())
             if false {
@@ -68,22 +73,22 @@ impl ServerWrapper {
     async fn handle_socket(server: Arc<Mutex<Server>>, mut socket: TcpStream) {
         let client = Arc::new(
             Mutex::new(
-                Client::new(&server)
+                Client::new()
             )
         );
-        print!("Before server lock");
+        println!("Before server lock");
         server.lock().await.clients.push(client.clone());
-        print!("After server lock");
+        println!("After server lock");
 
         // Send Init packet to tell SMO Online it is connected
         let mut init_packet = IPacket::<InitPacket>::new();
         init_packet.packet.max_players = MAX_PLAYERS;
-        print!("Before client lock");
+        println!("Before client lock");
         client.lock().await.send::<IPacket<InitPacket>>(
             &mut socket, 
             init_packet
         ).await;
-        print!("After client lock");
+        println!("After client lock");
 
         // In a loop, read data from the socket and write the data back.
         let mut buffer: [u8; 128] = [0; 128];
@@ -100,7 +105,9 @@ impl ServerWrapper {
     
             let mut incoming_buffer = &buffer[0..n];
 
-            
+            println!("{:?}", incoming_buffer);
+
+            // client.lock().await.send(&mut socket, packet);
     
             socket
                 .write_all(incoming_buffer)
