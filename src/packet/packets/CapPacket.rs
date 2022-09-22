@@ -13,7 +13,7 @@ pub struct CapPacket {
 
 const SIZE: usize = 0x50;
 const NAME_SIZE: usize = 0x30;
-impl IPacketTrait<[u8; SIZE]> for IPacket<CapPacket> {
+impl IPacketTrait for IPacket<CapPacket> {
     fn new() -> Self {
         IPacket {
             packet_key: "CapPacket".to_string(),
@@ -32,8 +32,8 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<CapPacket> {
     fn get_size(&self) -> &usize {
         &self.packet_size
     }
-    fn serialize(&self) -> [u8; SIZE] {
-        let mut returning_data: [u8; SIZE] = [0x0; SIZE];
+    fn serialize(&self) -> [u8; 1024] {
+        let mut returning_data: [u8; 1024] = [0x0; 1024];
 
         returning_data[..12].copy_from_slice(&self.vec3_to_bytes(self.packet.position));
 
@@ -41,7 +41,7 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<CapPacket> {
 
         returning_data[28] = self.bool_to_byte(self.packet.cap_out);
 
-        returning_data[32..].copy_from_slice(&self.string_to_bytes::<NAME_SIZE>(self.packet.cap_animation.to_string()));
+        returning_data[32..SIZE].copy_from_slice(&self.string_to_bytes::<NAME_SIZE>(self.packet.cap_animation.to_string()));
 
         return returning_data;
     }

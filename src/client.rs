@@ -90,10 +90,12 @@ impl ClientTraits for Client {
 }
 
 impl Client {
-    pub async fn send<T: IPacketTrait>(&mut self, mut socket: TcpStream, packet: T)
+    pub async fn send<T: IPacketTrait>(&mut self, socket: &mut TcpStream, packet: T)
     {
+        let packet_size: usize = packet.get_size().to_owned();
+        print!("{:?}", &packet.serialize()[..packet_size]);
         socket
-            .write_all(packet.serialize().as_slice())
+            .write_all(&packet.serialize()[..packet_size])
             .await
             .expect("failed to write data to socket");
     }

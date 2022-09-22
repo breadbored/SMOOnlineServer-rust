@@ -6,9 +6,9 @@ pub struct IPacket<T> {
     pub packet: T,
 }
 
-pub trait IPacketTrait<T = [u8; 128]> {
+pub trait IPacketTrait {
     fn new() -> Self;
-    fn serialize(&self) -> T;
+    fn serialize(&self) -> [u8; 1024];
     fn deserialize(&mut self, data: &[u8]);
     fn get_name(&self) -> &str;
     fn get_size(&self) -> &usize;

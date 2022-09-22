@@ -6,7 +6,7 @@ use crate::packet::packets::IPacket::{
 pub struct UnhandledPacket { }
 
 const SIZE: usize = 0;
-impl IPacketTrait<[u8; SIZE]> for IPacket<UnhandledPacket> {
+impl IPacketTrait for IPacket<UnhandledPacket> {
     fn new() -> Self {
         IPacket {
             packet_key: "UnhandledPacket".to_string(),
@@ -20,8 +20,8 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<UnhandledPacket> {
     fn get_size(&self) -> &usize {
         &self.packet_size
     }
-    fn serialize(&self) -> [u8; SIZE] {
-        return [0x0; SIZE];
+    fn serialize(&self) -> [u8; 1024] {
+        return [0x0; 1024];
     }
     fn deserialize(&mut self, data: &[u8]) {}
 }

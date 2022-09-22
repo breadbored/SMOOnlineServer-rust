@@ -13,7 +13,7 @@ pub struct ChangeStagePacket {
 const SIZE: usize = 0x44;
 const ID_SIZE: usize = 0x10;
 const STAGE_SIZE: usize = 0x30;
-impl IPacketTrait<[u8; SIZE]> for IPacket<ChangeStagePacket> {
+impl IPacketTrait for IPacket<ChangeStagePacket> {
     fn new() -> Self {
         IPacket {
             packet_key: "ChangeStagePacket".to_string(),
@@ -32,8 +32,8 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<ChangeStagePacket> {
     fn get_size(&self) -> &usize {
         &self.packet_size
     }
-    fn serialize(&self) -> [u8; SIZE] {
-        let mut returning_data: [u8; SIZE] = [0x0; SIZE];
+    fn serialize(&self) -> [u8; 1024] {
+        let mut returning_data: [u8; 1024] = [0x0; 1024];
         
         returning_data[..STAGE_SIZE].copy_from_slice(&self.string_to_bytes::<STAGE_SIZE>(self.packet.stage.to_string()));
         returning_data[STAGE_SIZE..(ID_SIZE + STAGE_SIZE)].copy_from_slice(&self.string_to_bytes::<ID_SIZE>(self.packet.id.to_string()));

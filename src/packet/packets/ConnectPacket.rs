@@ -17,7 +17,7 @@ pub struct ConnectPacket {
 
 const SIZE: usize = 0x26;
 const NAME_SIZE: usize = 0x20;
-impl IPacketTrait<[u8; SIZE]> for IPacket<ConnectPacket> {
+impl IPacketTrait for IPacket<ConnectPacket> {
     fn new() -> Self {
         IPacket {
             packet_key: "ConnectPacket".to_string(),
@@ -35,8 +35,8 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<ConnectPacket> {
     fn get_size(&self) -> &usize {
         &self.packet_size
     }
-    fn serialize(&self) -> [u8; SIZE] {
-        let mut returning_data: [u8; SIZE] = [0x0; SIZE];
+    fn serialize(&self) -> [u8; 1024] {
+        let mut returning_data: [u8; 1024] = [0x0; 1024];
         
         match self.packet.connection_type {
             ConnectionTypes::FirstConnection => returning_data[..4].copy_from_slice(&(0 as u32).to_ne_bytes()),
@@ -45,7 +45,7 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<ConnectPacket> {
 
         returning_data[4..6].copy_from_slice(&self.packet.max_players.to_ne_bytes());
 
-        returning_data[6..].copy_from_slice(&self.string_to_bytes::<NAME_SIZE>(self.packet.client_name.to_string()));
+        returning_data[6..SIZE].copy_from_slice(&self.string_to_bytes::<NAME_SIZE>(self.packet.client_name.to_string()));
 
         return returning_data;
     }

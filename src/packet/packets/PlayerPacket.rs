@@ -36,7 +36,7 @@ fn as_u32_ne(array: &[u8; ANIMATION_WEIGHT_SIZE * FLOAT32_SIZE]) -> [f32; ANIMAT
     return returning_data;
 }
 
-impl IPacketTrait<[u8; SIZE]> for IPacket<PlayerPacket> {
+impl IPacketTrait for IPacket<PlayerPacket> {
     fn new() -> Self {
         IPacket {
             packet_key: "PlayerPacket".to_string(),
@@ -56,8 +56,8 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<PlayerPacket> {
     fn get_size(&self) -> &usize {
         &self.packet_size
     }
-    fn serialize(&self) -> [u8; SIZE] {
-        let mut returning_data: [u8; SIZE] = [0x0; SIZE];
+    fn serialize(&self) -> [u8; 1024] {
+        let mut returning_data: [u8; 1024] = [0x0; 1024];
 
         returning_data[..12].copy_from_slice(&self.vec3_to_bytes(self.packet.position));
         returning_data[12..28].copy_from_slice(&self.quad_to_bytes(self.packet.rotation));

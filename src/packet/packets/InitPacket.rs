@@ -8,7 +8,7 @@ pub struct InitPacket {
 }
 
 const SIZE: usize = 0x2;
-impl IPacketTrait<[u8; SIZE]> for IPacket<InitPacket> {
+impl IPacketTrait for IPacket<InitPacket> {
     fn new() -> Self {
         IPacket {
             packet_key: "InitPacket".to_string(),
@@ -24,8 +24,10 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<InitPacket> {
     fn get_size(&self) -> &usize {
         &self.packet_size
     }
-    fn serialize(&self) -> [u8; SIZE] {
-        return self.packet.max_players.to_ne_bytes();
+    fn serialize(&self) -> [u8; 1024] {
+        let mut returning_data: [u8; 1024] = [0x0; 1024];
+        returning_data[..SIZE].copy_from_slice(&self.packet.max_players.to_ne_bytes());
+        return returning_data;
     }
     fn deserialize(&mut self, data: &[u8]) {
         let mut arr: [u8; 2] = [0; 2];

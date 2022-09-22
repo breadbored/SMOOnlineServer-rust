@@ -17,7 +17,7 @@ pub struct TagPacket {
 }
 
 const SIZE: usize = 6;
-impl IPacketTrait<[u8; SIZE]> for IPacket<TagPacket> {
+impl IPacketTrait for IPacket<TagPacket> {
     fn new() -> Self {
         IPacket {
             packet_key: "TagPacket".to_string(),
@@ -36,8 +36,8 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<TagPacket> {
     fn get_size(&self) -> &usize {
         &self.packet_size
     }
-    fn serialize(&self) -> [u8; SIZE] {
-        let mut returning_data: [u8; SIZE] = [0x0; SIZE];
+    fn serialize(&self) -> [u8; 1024] {
+        let mut returning_data: [u8; 1024] = [0x0; 1024];
         
         match self.packet.update_type {
             TagUpdate::Time => returning_data[0] = 1,
@@ -46,7 +46,7 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<TagPacket> {
         
         returning_data[1] = self.bool_to_byte(self.packet.is_it);
         returning_data[2] = self.packet.seconds;
-        returning_data[4..6].copy_from_slice(&u16::to_ne_bytes(self.packet.minutes));
+        returning_data[4..SIZE].copy_from_slice(&u16::to_ne_bytes(self.packet.minutes));
 
         return returning_data;
     }

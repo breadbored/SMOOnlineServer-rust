@@ -54,8 +54,7 @@ impl ServerWrapper {
             let (mut socket, socket_addr) = server.lock().await.listener.accept().await?;
             println!("new client: {:?}", socket_addr.to_string());
 
-            let local_server = server.clone();
-            tokio::spawn(ServerWrapper::handle_socket(local_server, socket));
+            tokio::spawn(ServerWrapper::handle_socket(server.clone(), socket));
 
             // Trick the compiler into thinking this eventually responds with Okay(())
             if false {
@@ -72,12 +71,25 @@ impl ServerWrapper {
                 Client::new(&server)
             )
         );
-        server.lock().await.clients.push(client);
+        print!("Before server lock");
+        server.lock().await.clients.push(client.clone());
+        print!("After server lock");
 
-        let mut buffer: [u8; 128] = [0; 128];
+        // Send Init packet to tell SMO Online it is connected
+        let mut init_packet = IPacket::<InitPacket>::new();
+        init_packet.packet.max_players = MAX_PLAYERS;
+        print!("Before client lock");
+        client.lock().await.send::<IPacket<InitPacket>>(
+            &mut socket, 
+            init_packet
+        ).await;
+        print!("After client lock");
+
         // In a loop, read data from the socket and write the data back.
+        let mut buffer: [u8; 128] = [0; 128];
         loop {
-            let n = socket
+            let local_socket = &mut socket;
+            let n = local_socket
                 .read(&mut buffer)
                 .await
                 .expect("failed to read data from socket");
@@ -86,18 +98,12 @@ impl ServerWrapper {
                 continue;
             }
     
-            let mut temp_buffer = &buffer[0..n];
-    
-            let mut init_packet = IPacket::<InitPacket>::new();
-            init_packet.packet.max_players = MAX_PLAYERS;
+            let mut incoming_buffer = &buffer[0..n];
 
-            // client.lock().await.send::<, IPacket<InitPacket>>(
-            //     socket, 
-            //     init_packet
-            // );
+            
     
             socket
-                .write_all(temp_buffer)
+                .write_all(incoming_buffer)
                 .await
                 .expect("failed to write data to socket");
         }

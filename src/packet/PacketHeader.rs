@@ -15,7 +15,7 @@ pub struct PacketHeader {
 }
 
 pub const SIZE: usize = 20;
-impl IPacketTrait<[u8; SIZE]> for IPacket<PacketHeader> {
+impl IPacketTrait for IPacket<PacketHeader> {
     fn new() -> Self {
         IPacket {
             packet_key: "PacketHeader".to_string(),
@@ -33,15 +33,15 @@ impl IPacketTrait<[u8; SIZE]> for IPacket<PacketHeader> {
     fn get_size(&self) -> &usize {
         &self.packet_size
     }
-    fn serialize(&self) -> [u8; SIZE] {
-        let mut returning_data: [u8; SIZE] = [0x0; SIZE];
+    fn serialize(&self) -> [u8; 1024] {
+        let mut returning_data: [u8; 1024] = [0x0; 1024];
 
         returning_data[..16].copy_from_slice(&self.packet.id.as_bytes().as_slice());
 
         let packet_type: u16 = self.packet.packet_type as u16;
         returning_data[16..18].copy_from_slice(&packet_type.to_ne_bytes());
 
-        returning_data[18..].copy_from_slice(&self.packet.packet_size.to_ne_bytes());
+        returning_data[18..SIZE].copy_from_slice(&self.packet.packet_size.to_ne_bytes());
 
         return returning_data;
     }
