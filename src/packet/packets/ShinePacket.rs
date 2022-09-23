@@ -26,12 +26,12 @@ impl IPacketTrait for IPacket<ShinePacket> {
     }
     fn serialize(&self) -> [u8; 1024] {
         let mut returning_data: [u8; 1024] = [0x0; 1024];
-        returning_data[..SIZE].copy_from_slice(&u32::to_ne_bytes(self.packet.shine_id));
+        returning_data[..SIZE].copy_from_slice(&u32::to_be_bytes(self.packet.shine_id));
         return returning_data;
     }
     fn deserialize(&mut self, data: &[u8]) {
         let mut arr: [u8; SIZE] = [0; SIZE];
         arr.copy_from_slice(data);
-        self.packet.shine_id = u32::from_ne_bytes(arr);
+        self.packet.shine_id = u32::from_be_bytes(arr);
     }
 }

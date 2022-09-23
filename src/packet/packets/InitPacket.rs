@@ -26,12 +26,12 @@ impl IPacketTrait for IPacket<InitPacket> {
     }
     fn serialize(&self) -> [u8; 1024] {
         let mut returning_data: [u8; 1024] = [0x0; 1024];
-        returning_data[..SIZE].copy_from_slice(&self.packet.max_players.to_ne_bytes());
+        returning_data[..SIZE].copy_from_slice(&self.packet.max_players.to_be_bytes());
         return returning_data;
     }
     fn deserialize(&mut self, data: &[u8]) {
         let mut arr: [u8; 2] = [0; 2];
         arr.copy_from_slice(data);
-        self.packet.max_players = u16::from_ne_bytes(arr);
+        self.packet.max_players = u16::from_be_bytes(arr);
     }
 }

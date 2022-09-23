@@ -6,6 +6,7 @@ mod settings;
 use mempool::Pool;
 use packet::packets::{IPacket, CapPacket::CapPacket};
 use server::{Server, ServerWrapper};
+use settings::{Settings};
 use tokio::{
     net::TcpListener,
     sync::Mutex
@@ -14,6 +15,7 @@ use std::{io::Result, sync::{Arc}};
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let settings = Settings::defaults();
     let addr: &str = "0.0.0.0:1027";
     let listener: TcpListener = TcpListener::bind(addr).await.unwrap();
 

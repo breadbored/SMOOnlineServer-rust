@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 #[repr(u16)]
 pub enum PacketType {
     Unknown,

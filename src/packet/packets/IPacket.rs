@@ -34,19 +34,19 @@ pub trait IPacketTrait {
         let mut pos_z: [u8; 4] = [0; 4];
         pos_z.copy_from_slice(&data[8..12]);
         return Vector3::new(
-            f32::from_ne_bytes(pos_x),
-            f32::from_ne_bytes(pos_y),
-            f32::from_ne_bytes(pos_z)
+            f32::from_be_bytes(pos_x),
+            f32::from_be_bytes(pos_y),
+            f32::from_be_bytes(pos_z)
         );
     }
     fn vec3_to_bytes(&self, data: Vector3<f32>) -> [u8; 12] {
         let mut returning_data: [u8; 12] = [0x0; 12];
 
-        let position_x_bytes = data.x.to_ne_bytes();
+        let position_x_bytes = data.x.to_be_bytes();
         returning_data[..4].copy_from_slice(&position_x_bytes);
-        let position_y_bytes = data.y.to_ne_bytes();
+        let position_y_bytes = data.y.to_be_bytes();
         returning_data[4..8].copy_from_slice(&position_y_bytes);
-        let position_z_bytes = data.z.to_ne_bytes();
+        let position_z_bytes = data.z.to_be_bytes();
         returning_data[8..12].copy_from_slice(&position_z_bytes);
 
         return returning_data;
@@ -61,22 +61,22 @@ pub trait IPacketTrait {
         let mut rot_k: [u8; 4] = [0; 4];
         rot_k.copy_from_slice(&data[12..16]);
         return Quaternion::new(
-            f32::from_ne_bytes(rot_w),
-            f32::from_ne_bytes(rot_i),
-            f32::from_ne_bytes(rot_j),
-            f32::from_ne_bytes(rot_k)
+            f32::from_be_bytes(rot_w),
+            f32::from_be_bytes(rot_i),
+            f32::from_be_bytes(rot_j),
+            f32::from_be_bytes(rot_k)
         );
     }
     fn quad_to_bytes(&self, data: Quaternion<f32>) -> [u8; 16] {
         let mut returning_data: [u8; 16] = [0x0; 16];
 
-        let rotation_w_bytes = data.w.to_ne_bytes();
+        let rotation_w_bytes = data.w.to_be_bytes();
         returning_data[..4].copy_from_slice(&rotation_w_bytes);
-        let rotation_i_bytes = data.i.to_ne_bytes();
+        let rotation_i_bytes = data.i.to_be_bytes();
         returning_data[4..8].copy_from_slice(&rotation_i_bytes);
-        let rotation_j_bytes = data.j.to_ne_bytes();
+        let rotation_j_bytes = data.j.to_be_bytes();
         returning_data[8..12].copy_from_slice(&rotation_j_bytes);
-        let rotation_k_bytes = data.k.to_ne_bytes();
+        let rotation_k_bytes = data.k.to_be_bytes();
         returning_data[12..16].copy_from_slice(&rotation_k_bytes);
 
         return returning_data;

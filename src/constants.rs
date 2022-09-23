@@ -2,7 +2,7 @@ use crate::packet::{
     PacketType::PacketType,
 };
 
-const COSTUME_NAME_SIZE: usize = 0x20;
+pub const COSTUME_NAME_SIZE: usize = 0x20;
 
 pub fn packet_to_type_map(key: &str) -> PacketType {
     match key {

@@ -7,10 +7,13 @@ use chrono::{
     DateTime,
     Utc
 };
-use crate::{packet::packets::{
-    GamePacket::{GamePacket},
-    CostumePacket::CostumePacket, IPacket::IPacketTrait
-}, server::Server};
+use crate::{
+    packet::packets::{
+        GamePacket::{GamePacket},
+        CostumePacket::CostumePacket,
+        IPacket::{IPacketTrait, IPacket}
+    }
+};
 
 pub struct Time {
     pub minutes: u16,
@@ -24,7 +27,7 @@ pub struct Metadata {
     pub scenario: u8,
     pub is_2d: bool,
     pub speedrun: bool,
-    pub last_game_packet: GamePacket,
+    pub last_game_packet: Option<IPacket<GamePacket>>,
     pub seeking: bool,
     pub time: Time,
 }
@@ -32,14 +35,15 @@ pub struct Metadata {
 pub struct Client {
     pub metadata: Metadata,
     pub connected: bool,
-    pub current_costume: Option<CostumePacket>,
+    pub current_costume: Option<IPacket<CostumePacket>>,
     pub name: String,
     pub id: Uuid,
+    pub socket: Arc<Mutex<TcpStream>>,
 }
 
 #[async_trait]
 pub trait ClientTraits {
-    fn new() -> Client;
+    fn new(socket: Arc<Mutex<TcpStream>>) -> Client;
     fn get_hash_code(&self) -> u64;
 }
 
@@ -53,7 +57,7 @@ impl PartialEq for Client {
 }
 
 impl ClientTraits for Client {
-    fn new() -> Client {
+    fn new(socket: Arc<Mutex<TcpStream>>) -> Client {
         Client {
             metadata: Metadata {
                 shine_sync: vec![],
@@ -61,11 +65,7 @@ impl ClientTraits for Client {
                 scenario: 0, 
                 is_2d: false, 
                 speedrun: false, 
-                last_game_packet: GamePacket {
-                    is_2d: false,
-                    scenario_num: 0,
-                    stage: "".to_string(),
-                }, 
+                last_game_packet: None, 
                 seeking: false, 
                 time: Time {
                     minutes: 0,
@@ -73,6 +73,7 @@ impl ClientTraits for Client {
                     when: Utc::now(),
                 }
             },
+            socket: socket,
             connected: false,
             current_costume: None,
             name: "".to_string(),
@@ -89,17 +90,20 @@ impl ClientTraits for Client {
 }
 
 impl Client {
-    pub async fn send<T: IPacketTrait>(&mut self, socket: &mut TcpStream, packet: T)
+    pub async fn send<T: IPacketTrait>(&mut self, packet: T)
     {
         let packet_size: usize = packet.get_size().to_owned();
         println!("{:?}", &packet.serialize()[..packet_size]);
-        socket
+        self.socket.lock().await
             .write_all(&packet.serialize()[..packet_size])
             .await
             .expect("failed to write data to socket");
     }
 
-    pub async fn send_raw_data<const SIZE: usize>(&mut self, data: [u8; SIZE]) {
-
+    pub async fn send_raw_data(&mut self, data: &[u8], size: usize) {
+        self.socket.lock().await
+            .write_all(&data[..size])
+            .await
+            .expect("failed to write data to socket");
     }
 }

@@ -3,6 +3,7 @@ use crate::packet::packets::IPacket::{
     IPacket
 };
 
+#[derive(Copy, Clone, PartialEq)]
 #[repr(u8)]
 pub enum TagUpdate {
     Time = 0x1,
@@ -46,7 +47,7 @@ impl IPacketTrait for IPacket<TagPacket> {
         
         returning_data[1] = self.bool_to_byte(self.packet.is_it);
         returning_data[2] = self.packet.seconds;
-        returning_data[4..SIZE].copy_from_slice(&u16::to_ne_bytes(self.packet.minutes));
+        returning_data[4..SIZE].copy_from_slice(&u16::to_be_bytes(self.packet.minutes));
 
         return returning_data;
     }
@@ -62,6 +63,6 @@ impl IPacketTrait for IPacket<TagPacket> {
         
         let mut minutes: [u8; 2] = [0; 2];
         minutes.copy_from_slice(&data[4..6]);
-        self.packet.minutes = u16::from_ne_bytes(minutes);
+        self.packet.minutes = u16::from_be_bytes(minutes);
     }
 }

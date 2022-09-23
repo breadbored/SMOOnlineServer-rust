@@ -39,9 +39,9 @@ impl IPacketTrait for IPacket<PacketHeader> {
         returning_data[..16].copy_from_slice(&self.packet.id.as_bytes().as_slice());
 
         let packet_type: u16 = self.packet.packet_type as u16;
-        returning_data[16..18].copy_from_slice(&packet_type.to_ne_bytes());
+        returning_data[16..18].copy_from_slice(&packet_type.to_be_bytes());
 
-        returning_data[18..SIZE].copy_from_slice(&self.packet.packet_size.to_ne_bytes());
+        returning_data[18..SIZE].copy_from_slice(&self.packet.packet_size.to_be_bytes());
 
         return returning_data;
     }
@@ -52,10 +52,10 @@ impl IPacketTrait for IPacket<PacketHeader> {
 
         let mut packet_type: [u8; 2] = [0; 2];
         packet_type.copy_from_slice(&data[16..18]);
-        self.packet.packet_type = u16::from_ne_bytes(packet_type).try_into().unwrap();
+        self.packet.packet_type = u16::from_be_bytes(packet_type).try_into().unwrap();
         
         let mut packet_size: [u8; 2] = [0; 2];
         packet_size.copy_from_slice(&data[18..]);
-        self.packet.packet_size = i16::from_ne_bytes(packet_size);
+        self.packet.packet_size = i16::from_be_bytes(packet_size);
     }
 }
