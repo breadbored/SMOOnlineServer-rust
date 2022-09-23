@@ -28,13 +28,17 @@ Because this is starting as a port, these are the features that need to be imple
 - [x] TCP Sockets
 - [x] Packet Serialization
 - [x] Packet Deserialization
-- [ ] Client (in progress; needs to serialize packets)
-- [ ] Server (in progress; can send and receive data; needs to init Clients)
-- [ ] Command Handler
+- [x] Broadcast to all clients
+- [x] Thread safety design for syncing states
+- [ ] Server (in progress)
+- [ ] Client (in progress)
+- [ ] Sync shines and shine storage
+- [ ] Save file and load to settings
 - [ ] Minimal Discord Integration, if any
 
 Features I would like to add to the road map would be:
 
+- [x] Stop misusing `struct`s and `impl`s as if they're classes
 - [ ] Refactor the server and fork the SMO Online mod to support UDP packets with a TCP channel for state sync only
 - [x] Docker container & Docker compose
 - [ ] Full Discord Integration as the authors of the official server continue to work on it
