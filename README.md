@@ -30,6 +30,7 @@ Because this is starting as a port, these are the features that need to be imple
 - [x] Packet Deserialization
 - [x] Broadcast to all clients
 - [x] Thread safety design for syncing states
+- [x] User editable settings
 - [ ] Server (in progress)
 - [ ] Client (in progress)
 - [ ] Sync shines and shine storage
