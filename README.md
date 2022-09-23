@@ -28,7 +28,7 @@ Because this is starting as a port, these are the features that need to be imple
 - [x] TCP Sockets
 - [x] Packet Serialization
 - [x] Packet Deserialization
-- [x] Broadcast to all clients
+- [x] Keep track of, and broadcast to, all connected clients
 - [x] Thread safety design for syncing states
 - [x] User editable settings
 - [ ] Server (in progress)
