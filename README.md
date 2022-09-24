@@ -46,8 +46,13 @@ Features I would like to add to the road map would be:
 
 ## What it looks like currently
 
+### v0.0.1-0.0.2
+
 Running the server and connecting via the [Super Mario Online Mod](https://github.com/CraftyBoss/SuperMarioOdysseyOnline) on Nintendo Switch currently creates a character with your name and it follows you around with a small delay. This is a result of the TCP Sockets currently echoing back the data it receives until the command handler and client/server are finished.
 
 
 https://user-images.githubusercontent.com/5916026/190936853-84890ec2-5fd9-4d5d-bb1c-e7f3a255476b.mp4
 
+### v0.0.3
+
+Server is currently parsing packets correctly, they are just not fully implemented. Init packets are not working, so you must restart the server after players connect.

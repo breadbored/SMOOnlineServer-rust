@@ -1,16 +1,15 @@
 use uuid::Uuid;
 
 pub const MAX_PLAYERS: u16 = 8;
-pub const MERGE_ENABLED: bool = false;
 
 pub struct Settings {
-    server: ServerTable,
-    scenario: ScenarioTable,
-    banned_players: BannedPlayers,
-    flip: FlipTable,
-    discord: DiscordTable,
-    shine: ShineTable,
-    persist_shines: PersistShinesTable,
+    pub server: ServerTable,
+    pub scenario: ScenarioTable,
+    pub banned_players: BannedPlayers,
+    pub flip: FlipTable,
+    pub discord: DiscordTable,
+    pub shine: ShineTable,
+    pub persist_shines: PersistShinesTable,
 }
 
 impl Settings {
