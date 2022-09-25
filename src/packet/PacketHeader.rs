@@ -11,7 +11,7 @@ use crate::packet::{
 pub struct PacketHeader {
     pub id: Uuid,
     pub packet_type: PacketType,
-    pub packet_size: u16
+    pub packet_size: i16
 }
 
 pub const SIZE: usize = 20;
@@ -39,13 +39,14 @@ impl IPacketTrait for IPacket<PacketHeader> {
         returning_data[..16].copy_from_slice(&self.packet.id.as_bytes().as_slice());
 
         let packet_type: u16 = self.packet.packet_type as u16;
-        returning_data[16..18].copy_from_slice(&packet_type.to_be_bytes());
+        returning_data[16..18].copy_from_slice(&packet_type.to_le_bytes());
 
-        returning_data[18..SIZE].copy_from_slice(&self.packet.packet_size.to_be_bytes());
+        returning_data[18..SIZE].copy_from_slice(&self.packet.packet_size.to_le_bytes());
 
         return returning_data;
     }
     fn deserialize(&mut self, data: &[u8]) {
+
         let mut id: [u8; 16] = [0; 16];
         id.copy_from_slice(&data[..16]);
         self.packet.id = Uuid::from_bytes(id);
@@ -56,6 +57,6 @@ impl IPacketTrait for IPacket<PacketHeader> {
         
         let mut packet_size: [u8; 2] = [0; 2];
         packet_size.copy_from_slice(&data[18..SIZE]);
-        self.packet.packet_size = u16::from_le_bytes(packet_size);
+        self.packet.packet_size = i16::from_le_bytes(packet_size);
     }
 }

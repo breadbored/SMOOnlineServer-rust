@@ -31,8 +31,8 @@ Because this is starting as a port, these are the features that need to be imple
 - [x] Keep track of, and broadcast to, all connected clients
 - [x] Thread safety design for syncing states
 - [x] User editable settings
-- [ ] Server (in progress)
-- [ ] Client (in progress)
+- [x] Server
+- [x] Client
 - [ ] Sync shines and shine storage
 - [ ] Save file and load to settings
 - [ ] Minimal Discord Integration, if any
@@ -46,21 +46,6 @@ Features I would like to add to the road map would be:
 
 ## What it looks like currently
 
-### v0.0.1-0.0.2
-
-Running the server and connecting via the [Super Mario Online Mod](https://github.com/CraftyBoss/SuperMarioOdysseyOnline) on Nintendo Switch currently creates a character with your name and it follows you around with a small delay. This is a result of the TCP Sockets currently echoing back the data it receives until the command handler and client/server are finished.
-
-
-https://user-images.githubusercontent.com/5916026/190936853-84890ec2-5fd9-4d5d-bb1c-e7f3a255476b.mp4
-
-### v0.0.3
-
-Server is currently parsing packets correctly, they are just not fully implemented. Init packets are not working, so you must restart the server after players connect.
-
-### v0.0.4
-
-Server is working at a minimal state where multiple players can join. Shines do not sync and the init packet still isn't working.
-
+A minimally working state where two players can join and interact. No shine syncing right this moment.
 
 https://user-images.githubusercontent.com/5916026/192169741-f887af87-171b-4f8e-9c16-ddca1d63f76a.mp4
-
