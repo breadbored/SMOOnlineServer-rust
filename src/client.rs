@@ -62,7 +62,7 @@ impl ClientTraits for Client {
             metadata: Metadata {
                 shine_sync: vec![],
                 loaded_save: false, 
-                scenario: 0, 
+                scenario: 200, 
                 is_2d: false, 
                 speedrun: false, 
                 last_game_packet: None, 

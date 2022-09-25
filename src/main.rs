@@ -25,6 +25,7 @@ async fn main() -> Result<()> {
                 listener: listener,
                 clients: vec![],
                 mempool: Pool::new(Box::new(|| [0; 1024])),
+                settings: settings,
             }
         )
     );

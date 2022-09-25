@@ -50,6 +50,7 @@ impl Settings {
     }
 }
 
+#[derive(Copy, Clone, PartialEq)]
 pub enum FlipOptions {
     BothOption,
     SelfOption,
