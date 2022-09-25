@@ -31,7 +31,7 @@ impl IPacketTrait for IPacket<InitPacket> {
     }
     fn deserialize(&mut self, data: &[u8]) {
         let mut arr: [u8; 2] = [0; 2];
-        arr.copy_from_slice(data);
-        self.packet.max_players = u16::from_be_bytes(arr);
+        arr.copy_from_slice(&data[..SIZE]);
+        self.packet.max_players = u16::from_le_bytes(arr);
     }
 }

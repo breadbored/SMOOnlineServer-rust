@@ -62,7 +62,7 @@ impl IPacketTrait for IPacket<TagPacket> {
         self.packet.seconds = data[2];
         
         let mut minutes: [u8; 2] = [0; 2];
-        minutes.copy_from_slice(&data[4..6]);
-        self.packet.minutes = u16::from_be_bytes(minutes);
+        minutes.copy_from_slice(&data[4..SIZE]);
+        self.packet.minutes = u16::from_le_bytes(minutes);
     }
 }

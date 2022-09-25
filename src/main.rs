@@ -22,7 +22,6 @@ async fn main() -> Result<()> {
     let server: Arc<Mutex<Server>> = Arc::new(
         Mutex::new(
             Server {
-                listener: listener,
                 clients: vec![],
                 mempool: Pool::new(Box::new(|| [0; 1024])),
                 settings: settings,
@@ -30,7 +29,7 @@ async fn main() -> Result<()> {
         )
     );
     
-    ServerWrapper::start(server).await?;
+    ServerWrapper::start(server, listener).await;
 
     Ok(())
 }

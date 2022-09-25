@@ -31,7 +31,7 @@ impl IPacketTrait for IPacket<ShinePacket> {
     }
     fn deserialize(&mut self, data: &[u8]) {
         let mut arr: [u8; SIZE] = [0; SIZE];
-        arr.copy_from_slice(data);
-        self.packet.shine_id = u32::from_be_bytes(arr);
+        arr.copy_from_slice(&data[..SIZE]);
+        self.packet.shine_id = u32::from_le_bytes(arr);
     }
 }

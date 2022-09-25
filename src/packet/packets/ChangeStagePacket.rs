@@ -45,7 +45,7 @@ impl IPacketTrait for IPacket<ChangeStagePacket> {
     fn deserialize(&mut self, data: &[u8]) {
         self.packet.stage = self.bytes_to_string(&data[..STAGE_SIZE]);
         self.packet.id = self.bytes_to_string(&data[STAGE_SIZE..(ID_SIZE + STAGE_SIZE)]);
-        self.packet.scenario = i8::from_be_bytes([data[(ID_SIZE + STAGE_SIZE)]; 1]);
+        self.packet.scenario = i8::from_le_bytes([data[(ID_SIZE + STAGE_SIZE)]; 1]);
         self.packet.sub_scenario_type = data[(ID_SIZE + STAGE_SIZE + 1)];
     }
 }

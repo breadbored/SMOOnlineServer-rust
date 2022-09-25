@@ -24,7 +24,8 @@ pub trait IPacketTrait {
         return returning_data;
     }
     fn bytes_to_string(&self, data: &[u8]) -> String {
-        String::from_utf8(data.to_vec()).unwrap()
+        let end_pos = data.iter().position(|n| n == &0u8).unwrap();
+        String::from_utf8(data[..end_pos].to_vec()).unwrap()
     }
     fn bytes_to_vec3(&self, data: &[u8]) -> Vector3<f32> {
         let mut pos_x: [u8; 4] = [0; 4];
@@ -34,9 +35,9 @@ pub trait IPacketTrait {
         let mut pos_z: [u8; 4] = [0; 4];
         pos_z.copy_from_slice(&data[8..12]);
         return Vector3::new(
-            f32::from_be_bytes(pos_x),
-            f32::from_be_bytes(pos_y),
-            f32::from_be_bytes(pos_z)
+            f32::from_le_bytes(pos_x),
+            f32::from_le_bytes(pos_y),
+            f32::from_le_bytes(pos_z)
         );
     }
     fn vec3_to_bytes(&self, data: Vector3<f32>) -> [u8; 12] {
@@ -61,10 +62,10 @@ pub trait IPacketTrait {
         let mut rot_k: [u8; 4] = [0; 4];
         rot_k.copy_from_slice(&data[12..16]);
         return Quaternion::new(
-            f32::from_be_bytes(rot_w),
-            f32::from_be_bytes(rot_i),
-            f32::from_be_bytes(rot_j),
-            f32::from_be_bytes(rot_k)
+            f32::from_le_bytes(rot_w),
+            f32::from_le_bytes(rot_i),
+            f32::from_le_bytes(rot_j),
+            f32::from_le_bytes(rot_k)
         );
     }
     fn quad_to_bytes(&self, data: Quaternion<f32>) -> [u8; 16] {

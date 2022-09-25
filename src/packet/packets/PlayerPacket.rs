@@ -28,10 +28,10 @@ pub fn convert_u32_to_u8(source: &[f32; ANIMATION_WEIGHT_SIZE]) -> [u8; ANIMATIO
 
 fn as_u32_ne(array: &[u8; ANIMATION_WEIGHT_SIZE * FLOAT32_SIZE]) -> [f32; ANIMATION_WEIGHT_SIZE] {
     let mut returning_data: [f32; ANIMATION_WEIGHT_SIZE] = [0.0; ANIMATION_WEIGHT_SIZE];
-    for i in 0..(ANIMATION_WEIGHT_SIZE * FLOAT32_SIZE) {
+    for i in 0..(ANIMATION_WEIGHT_SIZE) {
         let mut temp: [u8; FLOAT32_SIZE] = [0; FLOAT32_SIZE];
         temp.copy_from_slice(&array[(i * FLOAT32_SIZE)..(i * FLOAT32_SIZE + FLOAT32_SIZE)]);
-        returning_data[i] = f32::from_be_bytes(temp);
+        returning_data[i] = f32::from_le_bytes(temp);
     }
     return returning_data;
 }
@@ -72,7 +72,7 @@ impl IPacketTrait for IPacket<PlayerPacket> {
         self.packet.position = self.bytes_to_vec3(&data[..12]);
         self.packet.rotation = self.bytes_to_quad(&data[12..28]);
 
-        let offset = 28 + ANIMATION_WEIGHT_SIZE * FLOAT32_SIZE;
+        let offset = 28 + (ANIMATION_WEIGHT_SIZE * FLOAT32_SIZE);
 
         let mut animation_blend_weights: [u8; ANIMATION_WEIGHT_SIZE * FLOAT32_SIZE] = [0; ANIMATION_WEIGHT_SIZE * FLOAT32_SIZE];
         animation_blend_weights.copy_from_slice(&data[28..offset]);
@@ -80,8 +80,8 @@ impl IPacketTrait for IPacket<PlayerPacket> {
 
         let mut temp: [u8; 2] = [0; 2];
         temp.copy_from_slice(&data[offset..(offset + 2)]);
-        self.packet.act = u16::from_be_bytes(temp);
+        self.packet.act = u16::from_le_bytes(temp);
         temp.copy_from_slice(&data[(offset + 2)..(offset + 4)]);
-        self.packet.sub_act = u16::from_be_bytes(temp);
+        self.packet.sub_act = u16::from_le_bytes(temp);
     }
 }

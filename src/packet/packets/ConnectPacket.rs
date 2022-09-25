@@ -52,15 +52,15 @@ impl IPacketTrait for IPacket<ConnectPacket> {
     fn deserialize(&mut self, data: &[u8]) {
         let mut connection_type_bytes: [u8; 4] = [0; 4];
         connection_type_bytes.copy_from_slice(&data[..4]);
-        if u32::from_be_bytes(connection_type_bytes) == 0 {
+        if u32::from_le_bytes(connection_type_bytes) == 0 {
             self.packet.connection_type = ConnectionTypes::FirstConnection;
-        } else if u32::from_be_bytes(connection_type_bytes) == 1 {
+        } else if u32::from_le_bytes(connection_type_bytes) == 1 {
             self.packet.connection_type = ConnectionTypes::Reconnecting;
         }
 
         let mut max_players_bytes: [u8; 2] = [0; 2];
         max_players_bytes.copy_from_slice(&data[4..6]);
-        self.packet.max_players = u16::from_be_bytes(max_players_bytes);
+        self.packet.max_players = u16::from_le_bytes(max_players_bytes);
 
         self.packet.client_name = self.bytes_to_string(&data[6..]);
     }

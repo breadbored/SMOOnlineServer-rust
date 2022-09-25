@@ -30,6 +30,6 @@ impl IPacketTrait for IPacket<CapturePacket> {
         return returning_data;
     }
     fn deserialize(&mut self, data: &[u8]) {
-        self.packet.module_name = self.bytes_to_string(data);
+        self.packet.module_name = self.bytes_to_string(&data[..SIZE]);
     }
 }

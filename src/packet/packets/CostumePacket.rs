@@ -37,6 +37,6 @@ impl IPacketTrait for IPacket<CostumePacket> {
     }
     fn deserialize(&mut self, data: &[u8]) {
         self.packet.body_name = self.bytes_to_string(&data[..COSTUME_SIZE]);
-        self.packet.cap_name = self.bytes_to_string(&data[COSTUME_SIZE..]);
+        self.packet.cap_name = self.bytes_to_string(&data[COSTUME_SIZE..SIZE]);
     }
 }

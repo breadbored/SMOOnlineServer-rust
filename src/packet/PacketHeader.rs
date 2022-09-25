@@ -11,7 +11,7 @@ use crate::packet::{
 pub struct PacketHeader {
     pub id: Uuid,
     pub packet_type: PacketType,
-    pub packet_size: i16
+    pub packet_size: u16
 }
 
 pub const SIZE: usize = 20;
@@ -52,10 +52,10 @@ impl IPacketTrait for IPacket<PacketHeader> {
 
         let mut packet_type: [u8; 2] = [0; 2];
         packet_type.copy_from_slice(&data[16..18]);
-        self.packet.packet_type = u16::from_be_bytes(packet_type).try_into().unwrap();
+        self.packet.packet_type = u16::from_le_bytes(packet_type).try_into().unwrap();
         
         let mut packet_size: [u8; 2] = [0; 2];
-        packet_size.copy_from_slice(&data[18..]);
-        self.packet.packet_size = i16::from_be_bytes(packet_size);
+        packet_size.copy_from_slice(&data[18..SIZE]);
+        self.packet.packet_size = u16::from_le_bytes(packet_size);
     }
 }
