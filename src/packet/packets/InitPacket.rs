@@ -26,7 +26,7 @@ impl IPacketTrait for IPacket<InitPacket> {
     }
     fn serialize(&self) -> [u8; 1024] {
         let mut returning_data: [u8; 1024] = [0x0; 1024];
-        returning_data[..SIZE].copy_from_slice(&self.packet.max_players.to_be_bytes());
+        returning_data[..SIZE].copy_from_slice(&self.packet.max_players.to_le_bytes());
         return returning_data;
     }
     fn deserialize(&mut self, data: &[u8]) {

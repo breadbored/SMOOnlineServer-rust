@@ -162,18 +162,18 @@ impl ServerWrapper {
 
                 let mut packet_header = IPacket::<PacketHeader>::new();
                 packet_header.packet.id = client.lock().await.id;
-                packet_header.packet.packet_size = init_packet.packet_size as u16;
+                packet_header.packet.packet_size = init_packet.packet_size as i16;
                 packet_header.packet.packet_type = PacketType::Init;
 
-                println!("Are we stuck?");
+                // println!("Are we stuck?");
                 client.lock().await.send(
                     &packet_header,
                     &init_packet
                 ).await;
-                println!("Nope");
+                // println!("Nope");
             }
-            println!("{:?}", first);
-            let n = (*client).lock().await.socket
+            // println!("{:?}", first);
+            let n = client.lock().await.socket
                 .read(&mut buffer)
                 .await
                 .expect("failed to read data from socket");
@@ -192,6 +192,15 @@ impl ServerWrapper {
 
             // packet_header.packet_size is the size of the header
             // packet_header.packet.packet_size is the size of the packet
+            if (packet_header.packet_size + (packet_header.packet.packet_size as usize)) == packet_header.packet_size {
+                println!("WAT");
+                println!("{:?}", packet_header.packet_key);
+                println!("{:?}", packet_header.packet_size);
+                println!("{:?}", packet_header.packet.id);
+                println!("{:?}", packet_header.packet.packet_size);
+                println!("{:?}", packet_header.packet.packet_type as u16);
+            }
+
             let packet_data = &incoming_buffer[packet_header.packet_size..(packet_header.packet_size + (packet_header.packet.packet_size as usize))];
 
             if first {
@@ -269,7 +278,7 @@ impl ServerWrapper {
                     },
                 }
 
-                client.lock().await.name = (*connect_packet.packet.client_name).to_string();
+                client.lock().await.name = connect_packet.packet.client_name.to_string();
                 client.lock().await.connected = true;
                 if first_conn {
                     // let clients_iterable = clients.clone();
@@ -288,18 +297,19 @@ impl ServerWrapper {
                 let clients_iterable = clients.clone();
                 for c_index in 0..clients_iterable.len() {
                     let local_client = clients_iterable[c_index].clone();
+                    println!("Client Name: {:?}", local_client.lock().await.name);
                     if local_client.lock().await.id != packet_header.packet.id {
                         other_players.push(local_client)
                     }
                 }
 
-                let local_connection_packet_size = *connect_packet.get_size() as u16;
+                let local_connection_packet_size = *connect_packet.get_size() as i16;
 
                 let iterable_players = other_players.iter();
                 for f in iterable_players {
                     let player = f.clone();
 
-                    tokio::spawn(async move {
+                    // tokio::spawn(async move {
                         let local_player = player.clone();
                         let mut temp_memory: [u8; 1024] = [0; 1024];
                         
@@ -331,7 +341,7 @@ impl ServerWrapper {
                             player_packet_header.packet_size + player_packet_connection.packet_size
                         ).await;
                         println!("He's a problem");
-                    });
+                    // });
                 }
             } else if packet_header.packet.id != client.lock().await.id && !Uuid::is_nil(&client.lock().await.id) {
                 // println!("Invalid packet from {:#?}", client.lock().await.name);
@@ -347,7 +357,7 @@ impl ServerWrapper {
 
             match packet_header.packet.packet_type {
                 PacketType::Cap => {
-                    println!("Cap Packet:");
+
                     ServerWrapper::packet_builder::<IPacket::<CapPacket>>(
                         server.clone(),
                         client.clone(),
@@ -356,7 +366,7 @@ impl ServerWrapper {
                     ).await;
                 },
                 PacketType::Init => {
-                    println!("Init Packet");
+
                     ServerWrapper::packet_builder::<IPacket::<InitPacket>>(
                         server.clone(),
                         client.clone(),
@@ -365,7 +375,7 @@ impl ServerWrapper {
                     ).await;
                 },
                 PacketType::Player => {
-                    println!("Player Packet");
+
                     ServerWrapper::packet_builder::<IPacket::<PlayerPacket>>(
                         server.clone(),
                         client.clone(),
@@ -374,7 +384,7 @@ impl ServerWrapper {
                     ).await;
                 },
                 PacketType::Game => {
-                    println!("Game Packet");
+
                     ServerWrapper::packet_builder::<IPacket::<GamePacket>>(
                         server.clone(),
                         client.clone(),
@@ -383,7 +393,7 @@ impl ServerWrapper {
                     ).await;
                 },
                 PacketType::Tag => {
-                    println!("Tag Packet");
+
                     ServerWrapper::packet_builder::<IPacket::<TagPacket>>(
                         server.clone(),
                         client.clone(),
@@ -392,7 +402,7 @@ impl ServerWrapper {
                     ).await;
                 },
                 PacketType::Connect => {
-                    println!("Connect Packet");
+
                     ServerWrapper::packet_builder::<IPacket::<ConnectPacket>>(
                         server.clone(),
                         client.clone(),
@@ -401,7 +411,7 @@ impl ServerWrapper {
                     ).await;
                 },
                 PacketType::Disconnect => {
-                    println!("Disconnect Packet");
+
                     ServerWrapper::packet_builder::<IPacket::<DisconnectPacket>>(
                         server.clone(),
                         client.clone(),
@@ -410,7 +420,7 @@ impl ServerWrapper {
                     ).await;
                 },
                 PacketType::Costume => {
-                    println!("Costume Packet");
+
                     ServerWrapper::packet_builder::<IPacket::<CostumePacket>>(
                         server.clone(),
                         client.clone(),
@@ -419,7 +429,7 @@ impl ServerWrapper {
                     ).await;
                 },
                 PacketType::Shine => {
-                    println!("Shine Packet");
+
                     ServerWrapper::packet_builder::<IPacket::<ShinePacket>>(
                         server.clone(),
                         client.clone(),
@@ -428,7 +438,7 @@ impl ServerWrapper {
                     ).await;
                 },
                 PacketType::Capture => {
-                    println!("Capture Packet");
+
                     ServerWrapper::packet_builder::<IPacket::<CapturePacket>>(
                         server.clone(),
                         client.clone(),
@@ -437,7 +447,7 @@ impl ServerWrapper {
                     ).await;
                 },
                 PacketType::ChangeStage => {
-                    println!("ChangeStage Packet");
+
                     ServerWrapper::packet_builder::<IPacket::<ChangeStagePacket>>(
                         server.clone(),
                         client.clone(),
@@ -524,7 +534,7 @@ impl ServerWrapper {
                 let packet_type_name = packet.get_name().clone();
                 let packet_size_usize = packet.get_size().to_owned();
                 let packet_type = packet_to_type_map(&packet_type_name);
-                let packet_size = packet_size_usize as u16;
+                let packet_size = packet_size_usize as i16;
                 
                 let mut packet_header = IPacket::<PacketHeader>::new();
                 packet_header.packet.id = client.lock().await.id;
@@ -534,8 +544,7 @@ impl ServerWrapper {
                 // Wait, what is this for again?
                 // ServerWrapper::fill_packet::<T>(&mut packet_header, &mut copied_packet, memory);
 
-                let server_getter = server.lock().await;
-                let clients = &*server_getter.clients.clone();
+                let clients = server.lock().await.clients.clone();
                 let client_id = client.lock().await.id;
                 for c in clients {
                     let mut sendable_client  = c.lock().await;
@@ -602,11 +611,11 @@ impl ServerWrapper {
                             let mut copied_packet = IPacket::<GamePacket>::new();
                             copied_packet.deserialize(&p.serialize()[..p.get_size().to_owned()]);
                             
-                            async move {
+                            return async move {
                                 copied_packet.packet.scenario_num = from.lock().await.metadata.scenario;
 
                                 to.lock().await.send(&copied_packet_header, &copied_packet).await;
-                            }
+                            };
                         }
                     ).await;
                     return false;
@@ -667,16 +676,14 @@ impl ServerWrapper {
                             let mut copied_packet = IPacket::<PlayerPacket>::new();
                             copied_packet.deserialize(&p.serialize()[..p.get_size().to_owned()]);
 
-                            async move {
+                            return async move {
                                 if server.lock().await.settings.flip.players.contains(&to.lock().await.id) {
                                     copied_packet.packet.position = Vector3::<f32>::new(0.0, 1.0, 0.0) * ServerWrapper::mario_size(from.lock().await.metadata.is_2d);
                                     copied_packet.packet.rotation *= Quaternion::<f32>::create_from_rotation_matrix_x() * Quaternion::<f32>::create_from_rotation_matrix_y();
                                 }
 
-                                tokio::spawn(async move {
-                                    to.lock().await.send(&copied_packet_header, &copied_packet).await;
-                                });
-                            }
+                                to.lock().await.send(&copied_packet_header, &copied_packet).await;
+                            };
                         }
                     ).await;
                     return false;

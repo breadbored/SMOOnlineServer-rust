@@ -106,13 +106,14 @@ impl Client {
         let packet_header_size: usize = packet_header.packet_size as usize;
         let packet_size: usize = packet_header.packet.packet_size as usize;
 
+
         let mut raw_data: [u8; 1024] = [0; 1024];
         raw_data[..packet_header_size].copy_from_slice(&packet_header.serialize()[..packet_header_size]);
         raw_data[packet_header_size..(packet_header_size + packet_size)].copy_from_slice(
-            &packet_header.serialize()[..packet_size]
+            &packet.serialize()[..packet_size]
         );
 
-        println!("It sent!");
+        println!("It's sending");
         println!("{:?}", &raw_data[..(packet_header_size + packet_size)]);
         self.socket
             .write_all(&raw_data[..(packet_header_size + packet_size)])

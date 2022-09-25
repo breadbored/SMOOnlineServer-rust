@@ -44,11 +44,11 @@ pub trait IPacketTrait {
     fn vec3_to_bytes(&self, data: Vector3<f32>) -> [u8; 12] {
         let mut returning_data: [u8; 12] = [0x0; 12];
 
-        let position_x_bytes = data.x.to_be_bytes();
+        let position_x_bytes = data.x.to_le_bytes();
         returning_data[..4].copy_from_slice(&position_x_bytes);
-        let position_y_bytes = data.y.to_be_bytes();
+        let position_y_bytes = data.y.to_le_bytes();
         returning_data[4..8].copy_from_slice(&position_y_bytes);
-        let position_z_bytes = data.z.to_be_bytes();
+        let position_z_bytes = data.z.to_le_bytes();
         returning_data[8..12].copy_from_slice(&position_z_bytes);
 
         return returning_data;
@@ -72,13 +72,13 @@ pub trait IPacketTrait {
     fn quad_to_bytes(&self, data: Quaternion<f32>) -> [u8; 16] {
         let mut returning_data: [u8; 16] = [0x0; 16];
 
-        let rotation_w_bytes = data.w.to_be_bytes();
+        let rotation_w_bytes = data.w.to_le_bytes();
         returning_data[..4].copy_from_slice(&rotation_w_bytes);
-        let rotation_i_bytes = data.i.to_be_bytes();
+        let rotation_i_bytes = data.i.to_le_bytes();
         returning_data[4..8].copy_from_slice(&rotation_i_bytes);
-        let rotation_j_bytes = data.j.to_be_bytes();
+        let rotation_j_bytes = data.j.to_le_bytes();
         returning_data[8..12].copy_from_slice(&rotation_j_bytes);
-        let rotation_k_bytes = data.k.to_be_bytes();
+        let rotation_k_bytes = data.k.to_le_bytes();
         returning_data[12..16].copy_from_slice(&rotation_k_bytes);
 
         return returning_data;

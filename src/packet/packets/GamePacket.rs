@@ -34,12 +34,12 @@ impl IPacketTrait for IPacket<GamePacket> {
         let mut returning_data: [u8; 1024] = [0x0; 1024];
         returning_data[0] = self.bool_to_byte(self.packet.is_2d);
         returning_data[1] = self.packet.scenario_num;
-        returning_data[2..SIZE].copy_from_slice(&self.string_to_bytes::<STAGE_SIZE>(self.packet.stage.to_string()));
+        returning_data[2..(2 + STAGE_SIZE)].copy_from_slice(&self.string_to_bytes::<STAGE_SIZE>(self.packet.stage.to_string()));
         return returning_data;
     }
     fn deserialize(&mut self, data: &[u8]) {
         self.packet.is_2d = self.byte_to_bool(data[0]);
         self.packet.scenario_num = data[1];
-        self.packet.stage = self.bytes_to_string(&data[2..(2 + STAGE_SIZE)]);
+        self.packet.stage = self.bytes_to_string(&data[2..]);
     }
 }

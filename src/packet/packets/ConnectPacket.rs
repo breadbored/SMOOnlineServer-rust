@@ -39,11 +39,11 @@ impl IPacketTrait for IPacket<ConnectPacket> {
         let mut returning_data: [u8; 1024] = [0x0; 1024];
         
         match self.packet.connection_type {
-            ConnectionTypes::FirstConnection => returning_data[..4].copy_from_slice(&(0 as u32).to_be_bytes()),
-            ConnectionTypes::Reconnecting => returning_data[..4].copy_from_slice(&(1 as u32).to_be_bytes()),
+            ConnectionTypes::FirstConnection => returning_data[..4].copy_from_slice(&(0 as u32).to_le_bytes()),
+            ConnectionTypes::Reconnecting => returning_data[..4].copy_from_slice(&(1 as u32).to_le_bytes()),
         }
 
-        returning_data[4..6].copy_from_slice(&self.packet.max_players.to_be_bytes());
+        returning_data[4..6].copy_from_slice(&self.packet.max_players.to_le_bytes());
 
         returning_data[6..SIZE].copy_from_slice(&self.string_to_bytes::<NAME_SIZE>(self.packet.client_name.to_string()));
 

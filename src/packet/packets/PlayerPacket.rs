@@ -21,7 +21,7 @@ pub struct PlayerPacket {
 pub fn convert_u32_to_u8(source: &[f32; ANIMATION_WEIGHT_SIZE]) -> [u8; ANIMATION_WEIGHT_SIZE * FLOAT32_SIZE] {
     let mut dest: [u8; ANIMATION_WEIGHT_SIZE * FLOAT32_SIZE] = [0; ANIMATION_WEIGHT_SIZE * FLOAT32_SIZE];
     for (dest_c, source_e) in dest.chunks_exact_mut(FLOAT32_SIZE).zip(source.iter()) {
-        dest_c.copy_from_slice(&source_e.to_be_bytes())
+        dest_c.copy_from_slice(&source_e.to_le_bytes())
     }
     dest
 }
@@ -63,8 +63,8 @@ impl IPacketTrait for IPacket<PlayerPacket> {
         returning_data[12..28].copy_from_slice(&self.quad_to_bytes(self.packet.rotation));
         let offset = 28 + ANIMATION_WEIGHT_SIZE * FLOAT32_SIZE;
         returning_data[28..offset].copy_from_slice(&convert_u32_to_u8(&self.packet.animation_blend_weights));
-        returning_data[offset..(offset + 2)].copy_from_slice(&u16::to_be_bytes(self.packet.act));
-        returning_data[(offset + 2)..(offset + 4)].copy_from_slice(&u16::to_be_bytes(self.packet.sub_act));
+        returning_data[offset..(offset + 2)].copy_from_slice(&u16::to_le_bytes(self.packet.act));
+        returning_data[(offset + 2)..(offset + 4)].copy_from_slice(&u16::to_le_bytes(self.packet.sub_act));
 
         return returning_data;
     }

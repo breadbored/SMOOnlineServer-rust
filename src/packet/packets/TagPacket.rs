@@ -47,7 +47,7 @@ impl IPacketTrait for IPacket<TagPacket> {
         
         returning_data[1] = self.bool_to_byte(self.packet.is_it);
         returning_data[2] = self.packet.seconds;
-        returning_data[4..SIZE].copy_from_slice(&u16::to_be_bytes(self.packet.minutes));
+        returning_data[4..SIZE].copy_from_slice(&u16::to_le_bytes(self.packet.minutes));
 
         return returning_data;
     }

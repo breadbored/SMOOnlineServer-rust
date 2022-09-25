@@ -37,8 +37,8 @@ impl IPacketTrait for IPacket<ChangeStagePacket> {
         
         returning_data[..STAGE_SIZE].copy_from_slice(&self.string_to_bytes::<STAGE_SIZE>(self.packet.stage.to_string()));
         returning_data[STAGE_SIZE..(ID_SIZE + STAGE_SIZE)].copy_from_slice(&self.string_to_bytes::<ID_SIZE>(self.packet.id.to_string()));
-        returning_data[(ID_SIZE + STAGE_SIZE)..(ID_SIZE + STAGE_SIZE + 1)].copy_from_slice(&self.packet.scenario.to_be_bytes());
-        returning_data[(ID_SIZE + STAGE_SIZE + 1)..(ID_SIZE + STAGE_SIZE + 2)].copy_from_slice(&self.packet.sub_scenario_type.to_be_bytes());
+        returning_data[(ID_SIZE + STAGE_SIZE)..(ID_SIZE + STAGE_SIZE + 1)].copy_from_slice(&self.packet.scenario.to_le_bytes());
+        returning_data[(ID_SIZE + STAGE_SIZE + 1)..(ID_SIZE + STAGE_SIZE + 2)].copy_from_slice(&self.packet.sub_scenario_type.to_le_bytes());
 
         return returning_data;
     }
