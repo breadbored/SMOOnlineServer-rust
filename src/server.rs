@@ -143,33 +143,33 @@ impl ServerWrapper {
                 Client::new(socket)
             )
         );
-        println!("Init socket and client");
-        println!("{:#?}", server.lock().await.clients.len());
-        // println!("Before server lock");
+        
         let mut clients = server.lock().await.clients.clone();
         clients.push(client.clone());
-        // server.lock().await.clients.push(client.clone());
-        // println!("After server lock");
-
-        println!("Init packet");
-        // Send Init packet to tell SMO Online it is connected
-        let mut init_packet = IPacket::<InitPacket>::new();
-        init_packet.packet.max_players = MAX_PLAYERS;
-        client.lock().await.send::<IPacket<InitPacket>>(
-            init_packet
-        ).await;
-        println!("Done init packet");
 
         let mut first = true;
 
         // In a loop, read data from the socket and write the data back.
-        let mut buffer: [u8; 128] = [0; 128];
+        let mut buffer: [u8; 1024] = [0; 1024];
         loop {
             println!("loop");
+
+            if first {
+                println!("First init packet");
+                // Send Init packet to tell SMO Online it is connected
+                let mut init_packet = IPacket::<InitPacket>::new();
+                init_packet.packet.max_players = MAX_PLAYERS;
+                client.lock().await.send(
+                    init_packet
+                ).await;
+            }
+            println!("{:?}", first);
             let n = (*client).lock().await.socket.lock().await
                 .read(&mut buffer)
                 .await
                 .expect("failed to read data from socket");
+            
+            println!("{:?}", n);
     
             if n == 0 {
                 println!("No Data");
@@ -307,13 +307,21 @@ impl ServerWrapper {
                 client.lock().await.current_costume = Some(costume_packet);
             }
 
-            println!("{:?}", incoming_buffer);
+            // println!("{:?}", incoming_buffer);
 
             match packet_header.packet.packet_type {
                 PacketType::Cap => {
-                    println!("Cap Packet");
+                    println!("Cap Packet:");
                     let mut packet_serialized = IPacket::<CapPacket>::new();
                     packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
+                    
+                    println!("  packet_key: {:?}", packet_serialized.packet_key);
+                    println!("  packet_size: {:?}", packet_serialized.packet_size);
+                    println!("  packet.cap_animation: {:?}", packet_serialized.packet.cap_animation);
+                    println!("  packet.cap_out: {:?}", packet_serialized.packet.cap_out);
+                    println!("  packet.position: {:?}", packet_serialized.packet.position);
+                    println!("  packet.rotation: {:?}", packet_serialized.packet.rotation);
+
                     ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
                 },
                 PacketType::Init => {
@@ -326,6 +334,15 @@ impl ServerWrapper {
                     println!("Player Packet");
                     let mut packet_serialized = IPacket::<PlayerPacket>::new();
                     packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
+                    
+                    println!("  packet_key: {:?}", packet_serialized.packet_key);
+                    println!("  packet_size: {:?}", packet_serialized.packet_size);
+                    println!("  packet.act: {:?}", packet_serialized.packet.act);
+                    println!("  packet.animation_blend_weights: {:?}", packet_serialized.packet.animation_blend_weights);
+                    println!("  packet.sub_act: {:?}", packet_serialized.packet.sub_act);
+                    println!("  packet.position: {:?}", packet_serialized.packet.position);
+                    println!("  packet.rotation: {:?}", packet_serialized.packet.rotation);
+
                     ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
                 },
                 PacketType::Game => {
@@ -378,15 +395,15 @@ impl ServerWrapper {
                 },
                 _ => {
                     println!("Unknown Packet");
-                    let mut packet_serialized = IPacket::<UnhandledPacket>::new();
-                    packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
-                    ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
+                    // let mut packet_serialized = IPacket::<UnhandledPacket>::new();
+                    // packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
+                    // ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
                 },
             }
 
             // client.lock().await.send(&mut socket, packet);
             
-            client.lock().await.send_raw_data(incoming_buffer, n).await;
+            // client.lock().await.send_raw_data(incoming_buffer, n).await;
         }
     }
 

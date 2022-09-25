@@ -56,3 +56,7 @@ https://user-images.githubusercontent.com/5916026/190936853-84890ec2-5fd9-4d5d-b
 ### v0.0.3
 
 Server is currently parsing packets correctly, they are just not fully implemented. Init packets are not working, so you must restart the server after players connect.
+
+### v0.0.4
+
+Server is working at a minimal state where multiple players can join. Syncing and saving currently crash the game, making it hard to spend more than 30 seconds in game.

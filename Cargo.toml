@@ -1,7 +1,7 @@
 [package]
 name = "smo-rusty-online"
 description = "Unofficial Super Mario Odyssey Online server, only compatible with CraftyBoss's SMO Switch mod"
-version = "0.1.0"
+version = "0.0.4"
 edition = "2021"
 categories = ["games"]
 

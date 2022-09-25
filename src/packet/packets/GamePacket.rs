@@ -9,7 +9,7 @@ pub struct GamePacket {
     pub stage: String,
 }
 
-const SIZE: usize = 0x40;
+const SIZE: usize = 0x42;
 const STAGE_SIZE: usize = 0x40;
 
 impl IPacketTrait for IPacket<GamePacket> {
