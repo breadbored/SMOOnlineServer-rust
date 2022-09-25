@@ -60,3 +60,7 @@ Server is currently parsing packets correctly, they are just not fully implement
 ### v0.0.4
 
 Server is working at a minimal state where multiple players can join. Shines do not sync and the init packet still isn't working.
+
+
+https://user-images.githubusercontent.com/5916026/192169741-f887af87-171b-4f8e-9c16-ddca1d63f76a.mp4
+
