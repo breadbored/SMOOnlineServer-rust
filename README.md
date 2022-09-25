@@ -44,6 +44,10 @@ Features I would like to add to the road map would be:
 - [x] Docker container & Docker compose
 - [ ] Full Discord Integration as the authors of the official server continue to work on it
 
+## Purpose
+
+Mono is slow on Linux and macOS. The original server is best run on Windows which takes full advantage of it's features, but this server is meant to be a small and deployable alternative.
+
 ## What it looks like currently
 
 A minimally working state where two players can join and interact. No shine syncing right this moment.
