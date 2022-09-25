@@ -47,3 +47,5 @@ Features I would like to add to the road map would be:
 ## What it looks like currently
 
 A minimally working state where two players can join and interact. No shine syncing right this moment.
+
+https://user-images.githubusercontent.com/5916026/192169741-f887af87-171b-4f8e-9c16-ddca1d63f76a.mp4
