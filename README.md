@@ -59,4 +59,4 @@ Server is currently parsing packets correctly, they are just not fully implement
 
 ### v0.0.4
 
-Server is working at a minimal state where multiple players can join. Syncing and saving currently crash the game, making it hard to spend more than 30 seconds in game.
+Server is working at a minimal state where multiple players can join. Shines do not sync and the init packet still isn't working.
