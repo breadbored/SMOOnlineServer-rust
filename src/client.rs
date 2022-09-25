@@ -8,11 +8,11 @@ use chrono::{
     Utc
 };
 use crate::{
-    packet::packets::{
+    packet::{packets::{
         GamePacket::{GamePacket},
         CostumePacket::CostumePacket,
         IPacket::{IPacketTrait, IPacket}
-    }
+    }, PacketHeader::PacketHeader}
 };
 
 pub struct Time {
@@ -90,12 +90,22 @@ impl ClientTraits for Client {
 }
 
 impl Client {
-    pub async fn send<T: IPacketTrait>(&mut self, packet: T)
+    pub async fn send<T: IPacketTrait>(&mut self, packet_header: &IPacket<PacketHeader>, packet: &T)
     {
-        let packet_size: usize = packet.get_size().to_owned();
-        println!("{:?}", &packet.serialize()[..packet_size]);
+        let packet_header_size: usize = packet_header.packet_size as usize;
+        let packet_size: usize = packet_header.packet.packet_size as usize;
+
+        let mut raw_data: [u8; 1024] = [0; 1024];
+        raw_data[..packet_header_size].copy_from_slice(&packet_header.serialize()[..packet_header_size]);
+        raw_data[packet_header_size..(packet_header_size + packet_size)].copy_from_slice(
+            &packet_header.serialize()[..packet_size]
+        );
+
+        println!("It sent!");
+        println!("{:?}", &raw_data[..(packet_header_size + packet_size)]);
+
         self.socket.lock().await
-            .write_all(&packet.serialize()[..packet_size])
+            .write_all(&raw_data[..(packet_header_size + packet_size)])
             .await
             .expect("failed to write data to socket");
     }
