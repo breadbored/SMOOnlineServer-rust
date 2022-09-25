@@ -1,18 +1,29 @@
 
-use std::{hash::{Hash, Hasher}, collections::hash_map::DefaultHasher, sync::{Arc}};
+use std::{
+    hash::{Hash, Hasher},
+    collections::hash_map::DefaultHasher,
+    sync::{
+        Arc, 
+        // Mutex
+    }
+};
 use async_trait::async_trait;
-use tokio::{sync::Mutex, net::TcpStream, io::AsyncWriteExt};
+use tokio::{
+    sync::Mutex,
+    net::TcpStream,
+    io::AsyncWriteExt
+};
 use uuid::Uuid;
 use chrono::{
     DateTime,
     Utc
 };
 use crate::{
-    packet::packets::{
+    packet::{packets::{
         GamePacket::{GamePacket},
         CostumePacket::CostumePacket,
         IPacket::{IPacketTrait, IPacket}
-    }
+    }, PacketHeader::PacketHeader}
 };
 
 pub struct Time {
@@ -38,12 +49,12 @@ pub struct Client {
     pub current_costume: Option<IPacket<CostumePacket>>,
     pub name: String,
     pub id: Uuid,
-    pub socket: Arc<Mutex<TcpStream>>,
+    pub socket: TcpStream,
 }
 
 #[async_trait]
 pub trait ClientTraits {
-    fn new(socket: Arc<Mutex<TcpStream>>) -> Client;
+    fn new(socket: TcpStream) -> Client;
     fn get_hash_code(&self) -> u64;
 }
 
@@ -57,7 +68,7 @@ impl PartialEq for Client {
 }
 
 impl ClientTraits for Client {
-    fn new(socket: Arc<Mutex<TcpStream>>) -> Client {
+    fn new(socket: TcpStream) -> Client {
         Client {
             metadata: Metadata {
                 shine_sync: vec![],
@@ -90,18 +101,28 @@ impl ClientTraits for Client {
 }
 
 impl Client {
-    pub async fn send<T: IPacketTrait>(&mut self, packet: T)
+    pub async fn send<T: IPacketTrait>(&mut self, packet_header: &IPacket<PacketHeader>, packet: &T)
     {
-        let packet_size: usize = packet.get_size().to_owned();
-        println!("{:?}", &packet.serialize()[..packet_size]);
-        self.socket.lock().await
-            .write_all(&packet.serialize()[..packet_size])
+        let packet_header_size: usize = packet_header.packet_size as usize;
+        let packet_size: usize = packet_header.packet.packet_size as usize;
+
+        let mut raw_data: [u8; 1024] = [0; 1024];
+        raw_data[..packet_header_size].copy_from_slice(&packet_header.serialize()[..packet_header_size]);
+        raw_data[packet_header_size..(packet_header_size + packet_size)].copy_from_slice(
+            &packet_header.serialize()[..packet_size]
+        );
+
+        println!("It sent!");
+        println!("{:?}", &raw_data[..(packet_header_size + packet_size)]);
+        self.socket
+            .write_all(&raw_data[..(packet_header_size + packet_size)])
             .await
             .expect("failed to write data to socket");
     }
 
     pub async fn send_raw_data(&mut self, data: &[u8], size: usize) {
-        self.socket.lock().await
+        
+        self.socket
             .write_all(&data[..size])
             .await
             .expect("failed to write data to socket");

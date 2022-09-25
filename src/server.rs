@@ -1,4 +1,10 @@
-use std::{sync::{Arc}, f32::consts::PI, future::Future};
+use std::{
+    sync::{
+        Arc, 
+        // Mutex
+    }, 
+    f32::consts::PI, future::Future
+};
 use nalgebra::{Vector3, Quaternion, Matrix4};
 use tokio::{
     net::{
@@ -55,7 +61,7 @@ trait QuaternionMatrixConvertible {
 }
 impl QuaternionMatrixConvertible for Quaternion<f32> {
     fn create_from_rotation_matrix(matrix: Matrix4<f32>) -> Self {
-        println!("create_from_rotation_matrix");
+        // println!("create_from_rotation_matrix");
         let w: f32 = (1.0 + matrix.m11 + matrix.m22 + matrix.m33).sqrt() / 2.0;
         let w4: f32 = 4.0 * w;
         let i: f32 = (matrix.m32 - matrix.m23) / w4;
@@ -70,13 +76,13 @@ impl QuaternionMatrixConvertible for Quaternion<f32> {
     }
 
     fn create_from_rotation_matrix_x() -> Self {
-        println!("create_from_rotation_matrix_x");
+        // println!("create_from_rotation_matrix_x");
         let matrix = Matrix4::<f32>::create_rotation_x(PI);
         return Quaternion::<f32>::create_from_rotation_matrix(matrix);
     }
 
     fn create_from_rotation_matrix_y() -> Self {
-        println!("create_from_rotation_matrix_y");
+        // println!("create_from_rotation_matrix_y");
         let matrix = Matrix4::<f32>::create_rotation_y(PI);
         return Quaternion::<f32>::create_from_rotation_matrix(matrix);
     }
@@ -87,7 +93,7 @@ trait MatrixConvertible {
 }
 impl MatrixConvertible for Matrix4<f32> {
     fn create_rotation_x(radians: f32) -> Self {
-        println!("create_rotation_x");
+        // println!("create_rotation_x");
         Matrix4::<f32>::new(
             1.0, 0.0, 0.0, 0.0,
             0.0, radians.cos(), -radians.sin(), 0.0,
@@ -96,7 +102,7 @@ impl MatrixConvertible for Matrix4<f32> {
         )
     }
     fn create_rotation_y(radians: f32) -> Self {
-        println!("create_rotation_y");
+        // println!("create_rotation_y");
         Matrix4::<f32>::new(
             radians.cos(), 0.0, radians.sin(), 0.0,
             0.0, 1.0, 0.0, 0.0,
@@ -118,7 +124,7 @@ pub struct Server {
 
 impl ServerWrapper {
     pub async fn start(server: Arc<Mutex<Server>>, listener: TcpListener) -> Result<()> {
-        println!("start");
+        // println!("start");
         // Loop until new connection is made and spawn an async event loop
         loop {
             let (socket, socket_addr) = listener.accept().await?;
@@ -131,48 +137,51 @@ impl ServerWrapper {
         }
     }
 
-    async fn handle_socket(server: Arc<Mutex<Server>>, socket_raw: TcpStream) {
-        println!("Handle Socket");
-        let socket = Arc::new(
-            Mutex::new(
-                socket_raw
-            )
-        );
+    async fn handle_socket(server: Arc<Mutex<Server>>, socket: TcpStream) {
+        // println!("Handle Socket");
         let mut client = Arc::new(
             Mutex::new(
                 Client::new(socket)
             )
         );
         
-        let mut clients = server.lock().await.clients.clone();
-        clients.push(client.clone());
+        let clients = server.lock().await.clients.clone();
 
         let mut first = true;
 
         // In a loop, read data from the socket and write the data back.
         let mut buffer: [u8; 1024] = [0; 1024];
         loop {
-            println!("loop");
+            // println!("loop");
 
             if first {
-                println!("First init packet");
+                // println!("First init packet");
                 // Send Init packet to tell SMO Online it is connected
                 let mut init_packet = IPacket::<InitPacket>::new();
                 init_packet.packet.max_players = MAX_PLAYERS;
+
+                let mut packet_header = IPacket::<PacketHeader>::new();
+                packet_header.packet.id = client.lock().await.id;
+                packet_header.packet.packet_size = init_packet.packet_size as u16;
+                packet_header.packet.packet_type = PacketType::Init;
+
+                println!("Are we stuck?");
                 client.lock().await.send(
-                    init_packet
+                    &packet_header,
+                    &init_packet
                 ).await;
+                println!("Nope");
             }
             println!("{:?}", first);
-            let n = (*client).lock().await.socket.lock().await
+            let n = (*client).lock().await.socket
                 .read(&mut buffer)
                 .await
                 .expect("failed to read data from socket");
             
-            println!("{:?}", n);
+            // println!("{:?}", n);
     
             if n == 0 {
-                println!("No Data");
+                // println!("No Data");
                 continue;
             }
     
@@ -206,7 +215,7 @@ impl ServerWrapper {
                 }
 
                 if connected_clients.len() >= MAX_PLAYERS.into() {
-                    println!("Disconnect: Too many players");
+                    // println!("Disconnect: Too many players");
                     break;
                 }
 
@@ -215,10 +224,18 @@ impl ServerWrapper {
                 match connect_packet.packet.connection_type {
                     ConnectionTypes::FirstConnection => {
                         first_conn = true;
-                        match connected_clients.iter().position(|&r| r.blocking_lock().id == packet_header.packet.id) {
+                        let mut found_client = None;
+                        let clients_iterable = connected_clients.clone();
+                        for c_index in 0..clients_iterable.len() {
+                            let local_client = clients_iterable[c_index].clone();
+                            if local_client.lock().await.id == packet_header.packet.id {
+                                found_client = Some(c_index);
+                            }
+                        }
+                        match found_client {
                             Some(found_index) => {
                                 if connected_clients[found_index].lock().await.connected {
-                                    println!("Disconnect already connected client")
+                                    // println!("Disconnect already connected client")
                                     // TODO
                                 }
                                 client = connected_clients[found_index].clone();
@@ -228,10 +245,18 @@ impl ServerWrapper {
                     },
                     ConnectionTypes::Reconnecting => {
                         client.lock().await.id = packet_header.packet.id;
-                        match connected_clients.iter().position(|&r| r.blocking_lock().id == packet_header.packet.id) {
+                        let mut found_client = None;
+                        let clients_iterable = connected_clients.clone();
+                        for c_index in 0..clients_iterable.len() {
+                            let local_client = clients_iterable[c_index].clone();
+                            if local_client.lock().await.id == packet_header.packet.id {
+                                found_client = Some(c_index);
+                            }
+                        }
+                        match found_client {
                             Some(found_index) => {
                                 if connected_clients[found_index].lock().await.connected {
-                                    println!("Disconnect already connected client")
+                                    // println!("Disconnect already connected client")
                                     // TODO
                                 }
                                 client = connected_clients[found_index].clone();
@@ -247,7 +272,14 @@ impl ServerWrapper {
                 client.lock().await.name = (*connect_packet.packet.client_name).to_string();
                 client.lock().await.connected = true;
                 if first_conn {
-                    server.lock().await.clients.retain(|f| f.blocking_lock().id != packet_header.packet.id);
+                    // let clients_iterable = clients.clone();
+                    // for c_index in 0..clients_iterable.len() {
+                    //     let local_client = clients_iterable[c_index].clone();
+                    //     if local_client.lock().await.id != packet_header.packet.id {
+                    //         found_client = Some(c_index);
+                    //     }
+                    // }
+                    // server.lock().await.clients.retain(|f| f.blocking_lock().id != packet_header.packet.id);
                     client.lock().await.id = packet_header.packet.id;
                     server.lock().await.clients.push(client.clone());
                 }
@@ -263,7 +295,8 @@ impl ServerWrapper {
 
                 let local_connection_packet_size = *connect_packet.get_size() as u16;
 
-                other_players.iter().for_each(|f| {
+                let iterable_players = other_players.iter();
+                for f in iterable_players {
                     let player = f.clone();
 
                     tokio::spawn(async move {
@@ -282,7 +315,7 @@ impl ServerWrapper {
                         let mut player_packet_connection = IPacket::<ConnectPacket>::new();
                         player_packet_connection.packet.connection_type = ConnectionTypes::FirstConnection;
                         player_packet_connection.packet.max_players = MAX_PLAYERS;
-                        player_packet_connection.packet.client_name = (*local_player.lock().await.name).to_string();
+                        player_packet_connection.packet.client_name = local_player.lock().await.name.to_string();
 
                         // This looks like shit. I'm just trying to copy data into a slice!
                         temp_memory[
@@ -290,15 +323,18 @@ impl ServerWrapper {
                         ].copy_from_slice(
                             &player_packet_header.serialize()[..(player_packet_connection.packet_size)]
                         );
-
-                        local_player.lock().await.send_raw_data(
+                        
+                        println!("I'm problematic");
+                        let mut sendable = player.lock().await;
+                        sendable.send_raw_data(
                             &temp_memory[..(player_packet_header.packet_size + player_packet_connection.packet_size)],
                             player_packet_header.packet_size + player_packet_connection.packet_size
                         ).await;
+                        println!("He's a problem");
                     });
-                });
+                }
             } else if packet_header.packet.id != client.lock().await.id && !Uuid::is_nil(&client.lock().await.id) {
-                println!("Invalid packet from {:#?}", client.lock().await.name);
+                // println!("Invalid packet from {:#?}", client.lock().await.name);
             }
 
             if packet_header.packet.packet_type == PacketType::Costume {
@@ -307,94 +343,110 @@ impl ServerWrapper {
                 client.lock().await.current_costume = Some(costume_packet);
             }
 
-            // println!("{:?}", incoming_buffer);
+            // // println!("{:?}", incoming_buffer);
 
             match packet_header.packet.packet_type {
                 PacketType::Cap => {
                     println!("Cap Packet:");
-                    let mut packet_serialized = IPacket::<CapPacket>::new();
-                    packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
-                    
-                    println!("  packet_key: {:?}", packet_serialized.packet_key);
-                    println!("  packet_size: {:?}", packet_serialized.packet_size);
-                    println!("  packet.cap_animation: {:?}", packet_serialized.packet.cap_animation);
-                    println!("  packet.cap_out: {:?}", packet_serialized.packet.cap_out);
-                    println!("  packet.position: {:?}", packet_serialized.packet.position);
-                    println!("  packet.rotation: {:?}", packet_serialized.packet.rotation);
-
-                    ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
+                    ServerWrapper::packet_builder::<IPacket::<CapPacket>>(
+                        server.clone(),
+                        client.clone(),
+                        incoming_buffer.clone(),
+                        &mut packet_header
+                    ).await;
                 },
                 PacketType::Init => {
                     println!("Init Packet");
-                    let mut packet_serialized = IPacket::<InitPacket>::new();
-                    packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
-                    ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
+                    ServerWrapper::packet_builder::<IPacket::<InitPacket>>(
+                        server.clone(),
+                        client.clone(),
+                        incoming_buffer.clone(),
+                        &mut packet_header
+                    ).await;
                 },
                 PacketType::Player => {
                     println!("Player Packet");
-                    let mut packet_serialized = IPacket::<PlayerPacket>::new();
-                    packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
-                    
-                    println!("  packet_key: {:?}", packet_serialized.packet_key);
-                    println!("  packet_size: {:?}", packet_serialized.packet_size);
-                    println!("  packet.act: {:?}", packet_serialized.packet.act);
-                    println!("  packet.animation_blend_weights: {:?}", packet_serialized.packet.animation_blend_weights);
-                    println!("  packet.sub_act: {:?}", packet_serialized.packet.sub_act);
-                    println!("  packet.position: {:?}", packet_serialized.packet.position);
-                    println!("  packet.rotation: {:?}", packet_serialized.packet.rotation);
-
-                    ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
+                    ServerWrapper::packet_builder::<IPacket::<PlayerPacket>>(
+                        server.clone(),
+                        client.clone(),
+                        incoming_buffer.clone(),
+                        &mut packet_header
+                    ).await;
                 },
                 PacketType::Game => {
                     println!("Game Packet");
-                    let mut packet_serialized = IPacket::<GamePacket>::new();
-                    packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
-                    ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
+                    ServerWrapper::packet_builder::<IPacket::<GamePacket>>(
+                        server.clone(),
+                        client.clone(),
+                        incoming_buffer.clone(),
+                        &mut packet_header
+                    ).await;
                 },
                 PacketType::Tag => {
                     println!("Tag Packet");
-                    let mut packet_serialized = IPacket::<TagPacket>::new();
-                    packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
-                    ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
+                    ServerWrapper::packet_builder::<IPacket::<TagPacket>>(
+                        server.clone(),
+                        client.clone(),
+                        incoming_buffer.clone(),
+                        &mut packet_header
+                    ).await;
                 },
                 PacketType::Connect => {
                     println!("Connect Packet");
-                    let mut packet_serialized = IPacket::<ConnectPacket>::new();
-                    packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
-                    ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
+                    ServerWrapper::packet_builder::<IPacket::<ConnectPacket>>(
+                        server.clone(),
+                        client.clone(),
+                        incoming_buffer.clone(),
+                        &mut packet_header
+                    ).await;
                 },
                 PacketType::Disconnect => {
                     println!("Disconnect Packet");
-                    let mut packet_serialized = IPacket::<DisconnectPacket>::new();
-                    packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
-                    ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
+                    ServerWrapper::packet_builder::<IPacket::<DisconnectPacket>>(
+                        server.clone(),
+                        client.clone(),
+                        incoming_buffer.clone(),
+                        &mut packet_header
+                    ).await;
                 },
                 PacketType::Costume => {
                     println!("Costume Packet");
-                    let mut packet_serialized = IPacket::<CostumePacket>::new();
-                    packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
-                    ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
+                    ServerWrapper::packet_builder::<IPacket::<CostumePacket>>(
+                        server.clone(),
+                        client.clone(),
+                        incoming_buffer.clone(),
+                        &mut packet_header
+                    ).await;
                 },
                 PacketType::Shine => {
                     println!("Shine Packet");
-                    let mut packet_serialized = IPacket::<ShinePacket>::new();
-                    packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
-                    ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
+                    ServerWrapper::packet_builder::<IPacket::<ShinePacket>>(
+                        server.clone(),
+                        client.clone(),
+                        incoming_buffer.clone(),
+                        &mut packet_header
+                    ).await;
                 },
                 PacketType::Capture => {
                     println!("Capture Packet");
-                    let mut packet_serialized = IPacket::<CapturePacket>::new();
-                    packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
-                    ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
+                    ServerWrapper::packet_builder::<IPacket::<CapturePacket>>(
+                        server.clone(),
+                        client.clone(),
+                        incoming_buffer.clone(),
+                        &mut packet_header
+                    ).await;
                 },
                 PacketType::ChangeStage => {
                     println!("ChangeStage Packet");
-                    let mut packet_serialized = IPacket::<ChangeStagePacket>::new();
-                    packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
-                    ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
+                    ServerWrapper::packet_builder::<IPacket::<ChangeStagePacket>>(
+                        server.clone(),
+                        client.clone(),
+                        incoming_buffer.clone(),
+                        &mut packet_header
+                    ).await;
                 },
                 _ => {
-                    println!("Unknown Packet");
+                    // println!("Unknown Packet");
                     // let mut packet_serialized = IPacket::<UnhandledPacket>::new();
                     // packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
                     // ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
@@ -407,10 +459,23 @@ impl ServerWrapper {
         }
     }
 
+    pub async fn packet_builder<T: IPacketTrait>(server: Arc<Mutex<Server>>, client: Arc<Mutex<Client>>, incoming_buffer: &[u8], packet_header: &mut IPacket<PacketHeader>) {
+        let mut packet_serialized = T::new();
+        packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
+        let will_send = ServerWrapper::packet_handler(server.clone(), client.clone(), packet_header, packet_serialized).await;
+
+        if will_send {
+            // TODO: Implement Copy on packets so I don't need to copy and paste this so often
+            let mut packet_serialized = T::new();
+            packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
+            ServerWrapper::broadcast(server.clone(), &mut packet_serialized, Some(client.clone())).await;
+        }
+    }
+
     pub fn fill_packet<T: IPacketTrait> (packet_header: &mut IPacket<PacketHeader>, packet: &mut T, memory: &Pool<[u8; 1024]>)
     where T: IPacketTrait
     {
-        println!("fill packet");
+        // println!("fill packet");
         let data: &[u8; 1024] = memory.get();
         
         packet_header.deserialize(&data[..PACKET_HEADER_SIZE]);
@@ -419,12 +484,14 @@ impl ServerWrapper {
 
     pub async fn broadcast_replace<T: IPacketTrait, Fut>(
         server: Arc<Mutex<Server>>,
+        header: &mut IPacket<PacketHeader>,
         packet: T,
         client: Arc<Mutex<Client>>,
         packet_replacer: fn(
             server: Arc<Mutex<Server>>,
             from: Arc<Mutex<Client>>,
             to: Arc<Mutex<Client>>,
+            header: &mut IPacket<PacketHeader>,
             p: &mut T
         ) -> Fut
     )
@@ -439,7 +506,7 @@ impl ServerWrapper {
             packet_copy.deserialize(&packet.serialize()[..packet.get_size().to_owned()]);
 
             if local_client.lock().await.connected && client.lock().await.id != local_client.lock().await.id {
-                packet_replacer(local_server.clone(), client.clone(), local_client.clone(), &mut packet_copy).await;
+                packet_replacer(local_server, client.clone(), local_client.clone(), header, &mut packet_copy).await;
             }
         }
     }
@@ -447,10 +514,10 @@ impl ServerWrapper {
     pub async fn broadcast<T: IPacketTrait>(server: Arc<Mutex<Server>>, packet: &mut T, client: Option<Arc<Mutex<Client>>>)
     where T: IPacketTrait
     {
-        println!("broadcast");
-        let memory: &Pool<[u8; 1024]> = &server.lock().await.mempool;
+        // println!("broadcast");
+        // let memory: &Pool<[u8; 1024]> = server.lock().await.mempool;
         match client {
-            Some(c) => {
+            Some(client) => {
                 let mut copied_packet = T::new();
                 copied_packet.deserialize(&packet.serialize()[..packet.get_size().to_owned()]);
 
@@ -460,11 +527,22 @@ impl ServerWrapper {
                 let packet_size = packet_size_usize as u16;
                 
                 let mut packet_header = IPacket::<PacketHeader>::new();
-                packet_header.packet.id = c.lock().await.id;
+                packet_header.packet.id = client.lock().await.id;
                 packet_header.packet.packet_type = packet_type;
                 packet_header.packet.packet_size = packet_size;
                 
-                ServerWrapper::fill_packet::<T>(&mut packet_header, &mut copied_packet, memory);
+                // Wait, what is this for again?
+                // ServerWrapper::fill_packet::<T>(&mut packet_header, &mut copied_packet, memory);
+
+                let server_getter = server.lock().await;
+                let clients = &*server_getter.clients.clone();
+                let client_id = client.lock().await.id;
+                for c in clients {
+                    let mut sendable_client  = c.lock().await;
+                    if sendable_client.id != client_id {
+                        sendable_client.send(&packet_header, &copied_packet).await;
+                    }
+                }
             },
             None => {
 
@@ -472,10 +550,10 @@ impl ServerWrapper {
         }
     }
 
-    async fn packet_handler<T: IPacketTrait>(server: Arc<Mutex<Server>>, client: Arc<Mutex<Client>>, packet: T) -> bool
+    async fn packet_handler<T: IPacketTrait>(server: Arc<Mutex<Server>>, client: Arc<Mutex<Client>>, packet_header: &mut IPacket<PacketHeader>, packet: T) -> bool
     where T: IPacketTrait
     {
-        println!("packet_handler");
+        // println!("packet_handler");
         match packet.get_name() {
             "GamePacket" => {
                 let mut copied_packet = IPacket::<GamePacket>::new();
@@ -497,7 +575,7 @@ impl ServerWrapper {
                         // Shine Sync
                         // https://github.com/Sanae6/SmoOnlineServer/blob/e14616030cea51d1508665d8c1e4743e9c70c290/Server/Program.cs#L128
 
-                        println!("Cap kingdom, do not sync shines");
+                        // println!("Cap kingdom, do not sync shines");
                     },
                     "WaterfallWorldHomeStage" => {
                         let was_speedrun = client.lock().await.metadata.speedrun;
@@ -515,18 +593,19 @@ impl ServerWrapper {
                 if server.lock().await.settings.scenario.merge_enabled {
                     ServerWrapper::broadcast_replace(
                         server.clone(),
+                        packet_header,
                         copied_packet,
                         client.clone(),
-                        |server: Arc<Mutex<Server>>, from: Arc<Mutex<Client>>, to: Arc<Mutex<Client>>, p: &mut IPacket<GamePacket>| {
+                        |server: Arc<Mutex<Server>>, from: Arc<Mutex<Client>>, to: Arc<Mutex<Client>>, header: &mut IPacket<PacketHeader>, p: &mut IPacket<GamePacket>| {
+                            let mut copied_packet_header = IPacket::<PacketHeader>::new();
+                            copied_packet_header.deserialize(&header.serialize()[..header.get_size().to_owned()]);
                             let mut copied_packet = IPacket::<GamePacket>::new();
                             copied_packet.deserialize(&p.serialize()[..p.get_size().to_owned()]);
                             
                             async move {
                                 copied_packet.packet.scenario_num = from.lock().await.metadata.scenario;
 
-                                tokio::spawn(async move {
-                                    to.lock().await.send(copied_packet).await;
-                                });
+                                to.lock().await.send(&copied_packet_header, &copied_packet).await;
                             }
                         }
                     ).await;
@@ -563,24 +642,28 @@ impl ServerWrapper {
                 let mut player_packet = IPacket::<PlayerPacket>::new();
                 player_packet.deserialize(&packet.serialize()[..packet.get_size().to_owned()]);
 
-                if server.lock().await.settings.flip.enabled &&
-                    (server.lock().await.settings.flip.pov == FlipOptions::BothOption || server.lock().await.settings.flip.pov == FlipOptions::SelfOption) &&
-                    server.lock().await.settings.flip.players.contains(&client.lock().await.id)
+                let settings = &server.lock().await.settings;
+                if settings.flip.enabled &&
+                    (settings.flip.pov == FlipOptions::BothOption || settings.flip.pov == FlipOptions::SelfOption) &&
+                    settings.flip.players.contains(&client.lock().await.id)
                 {
                     player_packet.packet.position = Vector3::<f32>::new(0.0, 1.0, 0.0) * ServerWrapper::mario_size(client.lock().await.metadata.is_2d);
                     player_packet.packet.rotation *= Quaternion::<f32>::create_from_rotation_matrix_x() * Quaternion::<f32>::create_from_rotation_matrix_y();
                     ServerWrapper::broadcast::<IPacket<PlayerPacket>>(server.clone(), &mut player_packet, Some(client)).await;
-                } else if server.lock().await.settings.flip.enabled &&
-                    (server.lock().await.settings.flip.pov == FlipOptions::BothOption || server.lock().await.settings.flip.pov == FlipOptions::OthersOption) &&
-                    server.lock().await.settings.flip.players.contains(&client.lock().await.id)
+                } else if settings.flip.enabled &&
+                    (settings.flip.pov == FlipOptions::BothOption || settings.flip.pov == FlipOptions::OthersOption) &&
+                    settings.flip.players.contains(&client.lock().await.id)
                 {
                     player_packet.packet.position = Vector3::<f32>::new(0.0, 1.0, 0.0) * ServerWrapper::mario_size(client.lock().await.metadata.is_2d);
                     player_packet.packet.rotation *= Quaternion::<f32>::create_from_rotation_matrix_x() * Quaternion::<f32>::create_from_rotation_matrix_y();
                     ServerWrapper::broadcast_replace(
                         server.clone(),
+                        packet_header,
                         player_packet,
                         client.clone(),
-                        |server: Arc<Mutex<Server>>, from: Arc<Mutex<Client>>, to: Arc<Mutex<Client>>, p: &mut IPacket<PlayerPacket>| {
+                        |server: Arc<Mutex<Server>>, from: Arc<Mutex<Client>>, to: Arc<Mutex<Client>>, header: &mut IPacket<PacketHeader>, p: &mut IPacket<PlayerPacket>| {
+                            let mut copied_packet_header = IPacket::<PacketHeader>::new();
+                            copied_packet_header.deserialize(&header.serialize()[..header.get_size().to_owned()]);
                             let mut copied_packet = IPacket::<PlayerPacket>::new();
                             copied_packet.deserialize(&p.serialize()[..p.get_size().to_owned()]);
 
@@ -591,7 +674,7 @@ impl ServerWrapper {
                                 }
 
                                 tokio::spawn(async move {
-                                    to.lock().await.send(copied_packet).await;
+                                    to.lock().await.send(&copied_packet_header, &copied_packet).await;
                                 });
                             }
                         }
@@ -600,7 +683,7 @@ impl ServerWrapper {
                 }
             },
             _ => {
-                println!("Unsupported Packet?");
+                // println!("Unsupported Packet?");
             }
         }
 
@@ -608,7 +691,7 @@ impl ServerWrapper {
     }
 
     fn mario_size(is_2d: bool) -> f32 {
-        println!("mario_size");
+        // println!("mario_size");
         if is_2d {
             return 180.0;
         }
