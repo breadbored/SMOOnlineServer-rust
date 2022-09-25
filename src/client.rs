@@ -1,7 +1,18 @@
 
-use std::{hash::{Hash, Hasher}, collections::hash_map::DefaultHasher, sync::{Arc}};
+use std::{
+    hash::{Hash, Hasher},
+    collections::hash_map::DefaultHasher,
+    sync::{
+        Arc, 
+        // Mutex
+    }
+};
 use async_trait::async_trait;
-use tokio::{sync::Mutex, net::TcpStream, io::AsyncWriteExt};
+use tokio::{
+    sync::Mutex,
+    net::TcpStream,
+    io::AsyncWriteExt
+};
 use uuid::Uuid;
 use chrono::{
     DateTime,
@@ -38,12 +49,12 @@ pub struct Client {
     pub current_costume: Option<IPacket<CostumePacket>>,
     pub name: String,
     pub id: Uuid,
-    pub socket: Arc<Mutex<TcpStream>>,
+    pub socket: TcpStream,
 }
 
 #[async_trait]
 pub trait ClientTraits {
-    fn new(socket: Arc<Mutex<TcpStream>>) -> Client;
+    fn new(socket: TcpStream) -> Client;
     fn get_hash_code(&self) -> u64;
 }
 
@@ -57,7 +68,7 @@ impl PartialEq for Client {
 }
 
 impl ClientTraits for Client {
-    fn new(socket: Arc<Mutex<TcpStream>>) -> Client {
+    fn new(socket: TcpStream) -> Client {
         Client {
             metadata: Metadata {
                 shine_sync: vec![],
@@ -103,15 +114,15 @@ impl Client {
 
         println!("It sent!");
         println!("{:?}", &raw_data[..(packet_header_size + packet_size)]);
-
-        self.socket.lock().await
+        self.socket
             .write_all(&raw_data[..(packet_header_size + packet_size)])
             .await
             .expect("failed to write data to socket");
     }
 
     pub async fn send_raw_data(&mut self, data: &[u8], size: usize) {
-        self.socket.lock().await
+        
+        self.socket
             .write_all(&data[..size])
             .await
             .expect("failed to write data to socket");

@@ -1,4 +1,10 @@
-use std::{sync::{Arc}, f32::consts::PI, future::Future};
+use std::{
+    sync::{
+        Arc, 
+        // Mutex
+    }, 
+    f32::consts::PI, future::Future
+};
 use nalgebra::{Vector3, Quaternion, Matrix4};
 use tokio::{
     net::{
@@ -131,13 +137,8 @@ impl ServerWrapper {
         }
     }
 
-    async fn handle_socket(server: Arc<Mutex<Server>>, socket_raw: TcpStream) {
+    async fn handle_socket(server: Arc<Mutex<Server>>, socket: TcpStream) {
         // println!("Handle Socket");
-        let socket = Arc::new(
-            Mutex::new(
-                socket_raw
-            )
-        );
         let mut client = Arc::new(
             Mutex::new(
                 Client::new(socket)
@@ -172,7 +173,7 @@ impl ServerWrapper {
                 println!("Nope");
             }
             println!("{:?}", first);
-            let n = (*client).lock().await.socket.lock().await
+            let n = (*client).lock().await.socket
                 .read(&mut buffer)
                 .await
                 .expect("failed to read data from socket");
@@ -294,7 +295,8 @@ impl ServerWrapper {
 
                 let local_connection_packet_size = *connect_packet.get_size() as u16;
 
-                other_players.iter().for_each(|f| {
+                let iterable_players = other_players.iter();
+                for f in iterable_players {
                     let player = f.clone();
 
                     tokio::spawn(async move {
@@ -313,7 +315,7 @@ impl ServerWrapper {
                         let mut player_packet_connection = IPacket::<ConnectPacket>::new();
                         player_packet_connection.packet.connection_type = ConnectionTypes::FirstConnection;
                         player_packet_connection.packet.max_players = MAX_PLAYERS;
-                        player_packet_connection.packet.client_name = (*local_player.lock().await.name).to_string();
+                        player_packet_connection.packet.client_name = local_player.lock().await.name.to_string();
 
                         // This looks like shit. I'm just trying to copy data into a slice!
                         temp_memory[
@@ -321,13 +323,16 @@ impl ServerWrapper {
                         ].copy_from_slice(
                             &player_packet_header.serialize()[..(player_packet_connection.packet_size)]
                         );
-
-                        local_player.lock().await.send_raw_data(
+                        
+                        println!("I'm problematic");
+                        let mut sendable = player.lock().await;
+                        sendable.send_raw_data(
                             &temp_memory[..(player_packet_header.packet_size + player_packet_connection.packet_size)],
                             player_packet_header.packet_size + player_packet_connection.packet_size
                         ).await;
+                        println!("He's a problem");
                     });
-                });
+                }
             } else if packet_header.packet.id != client.lock().await.id && !Uuid::is_nil(&client.lock().await.id) {
                 // println!("Invalid packet from {:#?}", client.lock().await.name);
             }
@@ -529,18 +534,15 @@ impl ServerWrapper {
                 // Wait, what is this for again?
                 // ServerWrapper::fill_packet::<T>(&mut packet_header, &mut copied_packet, memory);
 
-                // PROBLEMATIC THREAD LOCKING
-                
-                // println!("Preparing to send from {:?}", client.lock().await.name);
-                // let server_getter = server.lock().await;
-                // let clients = &*server_getter.clients.clone();
-                // println!("Maybe we're unstuck?");
-                // for c in clients {
-                //     println!("Sending to {:?}", c.lock().await.name);
-                //     if c.lock().await.id != client.lock().await.id {
-                //         c.lock().await.send(&packet_header, &copied_packet).await;
-                //     }
-                // }
+                let server_getter = server.lock().await;
+                let clients = &*server_getter.clients.clone();
+                let client_id = client.lock().await.id;
+                for c in clients {
+                    let mut sendable_client  = c.lock().await;
+                    if sendable_client.id != client_id {
+                        sendable_client.send(&packet_header, &copied_packet).await;
+                    }
+                }
             },
             None => {
 
