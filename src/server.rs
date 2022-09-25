@@ -144,8 +144,7 @@ impl ServerWrapper {
             )
         );
         
-        let mut clients = server.lock().await.clients.clone();
-        clients.push(client.clone());
+        let clients = server.lock().await.clients.clone();
 
         let mut first = true;
 
@@ -464,7 +463,7 @@ impl ServerWrapper {
             // TODO: Implement Copy on packets so I don't need to copy and paste this so often
             let mut packet_serialized = T::new();
             packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
-            ServerWrapper::broadcast(server, &mut packet_serialized, Some(client.clone())).await;
+            ServerWrapper::broadcast(server.clone(), &mut packet_serialized, Some(client.clone())).await;
         }
     }
 
@@ -502,7 +501,7 @@ impl ServerWrapper {
             packet_copy.deserialize(&packet.serialize()[..packet.get_size().to_owned()]);
 
             if local_client.lock().await.connected && client.lock().await.id != local_client.lock().await.id {
-                packet_replacer(local_server.clone(), client.clone(), local_client.clone(), header, &mut packet_copy).await;
+                packet_replacer(local_server, client.clone(), local_client.clone(), header, &mut packet_copy).await;
             }
         }
     }
@@ -511,7 +510,7 @@ impl ServerWrapper {
     where T: IPacketTrait
     {
         // println!("broadcast");
-        let memory: &Pool<[u8; 1024]> = &server.lock().await.mempool;
+        // let memory: &Pool<[u8; 1024]> = server.lock().await.mempool;
         match client {
             Some(client) => {
                 let mut copied_packet = T::new();
@@ -530,14 +529,18 @@ impl ServerWrapper {
                 // Wait, what is this for again?
                 // ServerWrapper::fill_packet::<T>(&mut packet_header, &mut copied_packet, memory);
 
-                println!("Preparing to send from {:?}", client.lock().await.name);
-                let clients = server.lock().await.clients.clone();
-                for c in clients {
-                    println!("Sending to {:?}", c.lock().await.name);
-                    if c.lock().await.id != client.lock().await.id {
-                        c.lock().await.send(&packet_header, &copied_packet).await;
-                    }
-                }
+                // PROBLEMATIC THREAD LOCKING
+                
+                // println!("Preparing to send from {:?}", client.lock().await.name);
+                // let server_getter = server.lock().await;
+                // let clients = &*server_getter.clients.clone();
+                // println!("Maybe we're unstuck?");
+                // for c in clients {
+                //     println!("Sending to {:?}", c.lock().await.name);
+                //     if c.lock().await.id != client.lock().await.id {
+                //         c.lock().await.send(&packet_header, &copied_packet).await;
+                //     }
+                // }
             },
             None => {
 
@@ -600,9 +603,7 @@ impl ServerWrapper {
                             async move {
                                 copied_packet.packet.scenario_num = from.lock().await.metadata.scenario;
 
-                                tokio::spawn(async move {
-                                    to.lock().await.send(&copied_packet_header, &copied_packet).await;
-                                });
+                                to.lock().await.send(&copied_packet_header, &copied_packet).await;
                             }
                         }
                     ).await;
@@ -639,16 +640,17 @@ impl ServerWrapper {
                 let mut player_packet = IPacket::<PlayerPacket>::new();
                 player_packet.deserialize(&packet.serialize()[..packet.get_size().to_owned()]);
 
-                if server.lock().await.settings.flip.enabled &&
-                    (server.lock().await.settings.flip.pov == FlipOptions::BothOption || server.lock().await.settings.flip.pov == FlipOptions::SelfOption) &&
-                    server.lock().await.settings.flip.players.contains(&client.lock().await.id)
+                let settings = &server.lock().await.settings;
+                if settings.flip.enabled &&
+                    (settings.flip.pov == FlipOptions::BothOption || settings.flip.pov == FlipOptions::SelfOption) &&
+                    settings.flip.players.contains(&client.lock().await.id)
                 {
                     player_packet.packet.position = Vector3::<f32>::new(0.0, 1.0, 0.0) * ServerWrapper::mario_size(client.lock().await.metadata.is_2d);
                     player_packet.packet.rotation *= Quaternion::<f32>::create_from_rotation_matrix_x() * Quaternion::<f32>::create_from_rotation_matrix_y();
                     ServerWrapper::broadcast::<IPacket<PlayerPacket>>(server.clone(), &mut player_packet, Some(client)).await;
-                } else if server.lock().await.settings.flip.enabled &&
-                    (server.lock().await.settings.flip.pov == FlipOptions::BothOption || server.lock().await.settings.flip.pov == FlipOptions::OthersOption) &&
-                    server.lock().await.settings.flip.players.contains(&client.lock().await.id)
+                } else if settings.flip.enabled &&
+                    (settings.flip.pov == FlipOptions::BothOption || settings.flip.pov == FlipOptions::OthersOption) &&
+                    settings.flip.players.contains(&client.lock().await.id)
                 {
                     player_packet.packet.position = Vector3::<f32>::new(0.0, 1.0, 0.0) * ServerWrapper::mario_size(client.lock().await.metadata.is_2d);
                     player_packet.packet.rotation *= Quaternion::<f32>::create_from_rotation_matrix_x() * Quaternion::<f32>::create_from_rotation_matrix_y();
