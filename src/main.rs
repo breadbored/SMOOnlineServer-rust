@@ -3,18 +3,18 @@ mod server;
 mod client;
 mod constants;
 mod settings;
+use mempool::Pool;
+use packet::packets::{IPacket, CapPacket::CapPacket};
 use server::{Server, ServerWrapper};
-use settings::Settings;
+use settings::{Settings};
 use tokio::{
     net::TcpListener,
-    sync::{
-        Mutex,
-        RwLock,
-    },
+    sync::Mutex
 };
 use std::{
     io::Result, sync::{
         Arc, 
+        // Mutex
     }
 };
 
@@ -28,7 +28,8 @@ async fn main() -> Result<()> {
         Mutex::new(
             Server {
                 clients: vec![],
-                settings,
+                mempool: Pool::new(Box::new(|| [0; 1024])),
+                settings: settings,
             }
         )
     );

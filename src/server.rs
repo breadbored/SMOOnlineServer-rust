@@ -19,6 +19,7 @@ use tokio::{
 use chrono::{
     Utc
 };
+use mempool::Pool;
 use uuid::Uuid;
 use crate::{
     client::{
@@ -26,33 +27,19 @@ use crate::{
         ClientTraits, Time
     },
     packet::{
-        PacketHeader::ipacket::{
+        PacketHeader::{
             PacketHeader,
             SIZE as PACKET_HEADER_SIZE
         },
         packets::{
-            IPacket::ipacket::{
+            IPacket::{
                 IPacket,
                 IPacketTrait,
             },
-            InitPacket::ipacket::InitPacket,
-            ConnectPacket::ipacket::{
-                ConnectPacket, 
-                ConnectionTypes
-            },
-            CostumePacket::ipacket::CostumePacket,
-            GamePacket::ipacket::GamePacket,
-            TagPacket::ipacket::{
-                TagPacket,
-                TagUpdate
-            }, 
-            PlayerPacket::ipacket::PlayerPacket, 
-            CapPacket::ipacket::CapPacket, 
-            UnhandledPacket::ipacket::UnhandledPacket, 
-            DisconnectPacket::ipacket::DisconnectPacket, 
-            ShinePacket::ipacket::ShinePacket, 
-            CapturePacket::ipacket::CapturePacket, 
-            ChangeStagePacket::ipacket::ChangeStagePacket,
+            InitPacket::InitPacket,
+            ConnectPacket::{ConnectPacket, ConnectionTypes},
+            CostumePacket::CostumePacket,
+            GamePacket::GamePacket, TagPacket::{TagPacket, TagUpdate}, PlayerPacket::PlayerPacket, CapPacket::CapPacket, UnhandledPacket::UnhandledPacket, DisconnectPacket::DisconnectPacket, ShinePacket::ShinePacket, CapturePacket::CapturePacket, ChangeStagePacket::ChangeStagePacket,
         }, PacketType::PacketType
     },
     constants::{
@@ -128,6 +115,7 @@ pub struct ServerWrapper {}
 
 pub struct Server {
     pub clients: Vec<Arc<Mutex<Client>>>,
+    pub mempool: Pool<[u8; 1024]>,
     pub settings: Settings,
 }
 
@@ -233,7 +221,7 @@ impl ServerWrapper {
                 }
 
                 if connected_clients.len() >= MAX_PLAYERS.into() {
-                    println!("Disconnect: Too many players");
+                    // println!("Disconnect: Too many players");
                     break;
                 }
 
@@ -465,13 +453,10 @@ impl ServerWrapper {
                     ).await;
                 },
                 _ => {
-                    println!("Unknown Packet");
-                    ServerWrapper::packet_builder::<IPacket::<UnhandledPacket>>(
-                        server.clone(),
-                        client.clone(),
-                        incoming_buffer.clone(),
-                        &mut packet_header
-                    ).await;
+                    // println!("Unknown Packet");
+                    // let mut packet_serialized = IPacket::<UnhandledPacket>::new();
+                    // packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
+                    // ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
                 },
             }
 
@@ -487,32 +472,21 @@ impl ServerWrapper {
         let will_send = ServerWrapper::packet_handler(server.clone(), client.clone(), packet_header, packet_serialized).await;
 
         if will_send {
-            let (packet_header, mut packet_serialized) = ServerWrapper::bytes_to_packet_pair::<T>(incoming_buffer);
+            // TODO: Implement Copy on packets so I don't need to copy and paste this so often
+            let mut packet_serialized = T::new();
+            packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
             ServerWrapper::broadcast(server.clone(), &mut packet_serialized, Some(client.clone())).await;
         }
     }
 
-    pub fn bytes_to_packet_pair<T: IPacketTrait> (data: &[u8]) -> (IPacket<PacketHeader>, T)
-    where T: IPacketTrait
-    {
-        let mut packet_header = IPacket::<PacketHeader>::new();
-        let mut packet = T::new();
-        packet_header.deserialize(&data[..PACKET_HEADER_SIZE]);
-        packet.deserialize(&data[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
-        return (packet_header, packet)
-    }
-
-    pub fn packet_pair_to_bytes<T: IPacketTrait> (packet_header: IPacket<PacketHeader>, packet: T) -> ([u8; 1024], usize)
+    pub fn fill_packet<T: IPacketTrait> (packet_header: &mut IPacket<PacketHeader>, packet: &mut T, memory: &Pool<[u8; 1024]>)
     where T: IPacketTrait
     {
         // println!("fill packet");
-        let mut data: [u8; 1024] = [0; 1024];
-        let data_length = PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize;
+        let data: &[u8; 1024] = memory.get();
         
-        data[..PACKET_HEADER_SIZE].copy_from_slice(&packet_header.serialize());
-        data[PACKET_HEADER_SIZE..data_length].copy_from_slice(&packet.serialize());
-
-        return (data, data_length);
+        packet_header.deserialize(&data[..PACKET_HEADER_SIZE]);
+        packet.deserialize(&data[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
     }
 
     pub async fn broadcast_replace<T: IPacketTrait, Fut>(
@@ -547,6 +521,8 @@ impl ServerWrapper {
     pub async fn broadcast<T: IPacketTrait>(server: Arc<Mutex<Server>>, packet: &mut T, client: Option<Arc<Mutex<Client>>>)
     where T: IPacketTrait
     {
+        // println!("broadcast");
+        // let memory: &Pool<[u8; 1024]> = server.lock().await.mempool;
         match client {
             Some(client) => {
                 let mut copied_packet = T::new();

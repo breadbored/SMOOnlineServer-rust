@@ -18,17 +18,12 @@ use chrono::{
     DateTime,
     Utc
 };
-
-use crate::packet::{
-    packets::{
-        GamePacket::ipacket::GamePacket,
-        IPacket::ipacket::{
-            IPacket,
-            IPacketTrait
-        },
-        CostumePacket::ipacket::CostumePacket
-    },
-    PacketHeader::ipacket::PacketHeader
+use crate::{
+    packet::{packets::{
+        GamePacket::{GamePacket},
+        CostumePacket::CostumePacket,
+        IPacket::{IPacketTrait, IPacket}
+    }, PacketHeader::PacketHeader}
 };
 
 pub struct Time {
