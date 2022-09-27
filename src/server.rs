@@ -124,9 +124,7 @@ impl MatrixConvertible for Matrix4<f32> {
     }
 }
 
-pub struct ServerWrapper {
-    
-}
+pub struct ServerWrapper {}
 
 pub struct Server {
     pub clients: Vec<Arc<Mutex<Client>>>,
