@@ -154,7 +154,7 @@ impl ServerWrapper {
         let mut buffer: [u8; 1024] = [0; 1024];
         loop {
             // println!("loop");
-            let mut client_in_loop = &mut client.copy();
+            let mut client_in_loop = client.copy();
 
             if first {
                 // println!("First init packet");
@@ -215,16 +215,7 @@ impl ServerWrapper {
 
                         // todo: if too many clients connected, disconnect
                         // https://github.com/Sanae6/SmoOnlineServer/blob/master/Server/Server.cs#L177-L181
-                        let mut connected_clients: Vec<Client> = Vec::new();
-                        let clients_iterable: Vec<Client>  = server.read().await.clients.iter().map(|p| p.copy()).collect();
-                        for c_index in 0..clients_iterable.len() {
-                            let local_client = clients_iterable[c_index].copy();
-                            if local_client.connected {
-                                connected_clients.push(local_client)
-                            }
-                        }
-
-                        let clients = &server.read().await.clients;
+                        let clients = server.read().await.copy_of_clients();
                         let connected_clients: Vec<Client> = clients.iter().filter(|p| {
                             p.connected
                         }).cloned().collect();
@@ -254,7 +245,9 @@ impl ServerWrapper {
                                             // println!("Disconnect already connected client")
                                             // TODO
                                         }
-                                        client = connected_clients[found_index].copy();
+                                        // DO NOT SET CLIENT HERE. IT BREAKS SHIT
+                                        // client = connected_clients[found_index].copy();
+                                        client_in_loop = connected_clients[found_index].clone();
                                     },
                                     None => {
                                         first_conn = true;
@@ -279,7 +272,9 @@ impl ServerWrapper {
                                             // println!("Disconnect already connected client")
                                             // TODO
                                         }
-                                        client = connected_clients[found_index].copy();
+                                        // DO NOT SET CLIENT HERE. IT BREAKS SHIT
+                                        // client = connected_clients[found_index].copy();
+                                        client_in_loop = connected_clients[found_index].clone();
                                     },
                                     None => {
                                         first_conn = true;
@@ -293,7 +288,7 @@ impl ServerWrapper {
                         client_in_loop.connected = true;
                         if first_conn {
                             server.write().await.clients.retain(|c| {
-                                c.id != client.id
+                                c.id != client_in_loop.id
                             });
 
                             client_in_loop.id = packet_header.packet.id;
