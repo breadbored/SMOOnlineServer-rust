@@ -9,7 +9,7 @@ use server::{Server, ServerWrapper};
 use settings::{Settings};
 use tokio::{
     net::TcpListener,
-    sync::Mutex
+    sync::{Mutex, RwLock}
 };
 use std::{
     io::Result, sync::{
@@ -24,8 +24,8 @@ async fn main() -> Result<()> {
     let addr: &str = "0.0.0.0:1027";
     let listener: TcpListener = TcpListener::bind(addr).await.unwrap();
 
-    let server: Arc<Mutex<Server>> = Arc::new(
-        Mutex::new(
+    let server: Arc<RwLock<Server>> = Arc::new(
+        RwLock::new(
             Server {
                 clients: vec![],
                 mempool: Pool::new(Box::new(|| [0; 1024])),

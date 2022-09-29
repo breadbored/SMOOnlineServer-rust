@@ -83,4 +83,13 @@ pub trait IPacketTrait {
 
         return returning_data;
     }
+
+    fn copy(&self) -> Self
+    where Self: Sized
+    {
+        let mut copied_packet = Self::new();
+        let data = self.serialize();
+        copied_packet.deserialize(&data.as_slice());
+        return copied_packet;
+    }
 }
