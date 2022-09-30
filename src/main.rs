@@ -3,6 +3,7 @@ mod server;
 mod client;
 mod constants;
 mod settings;
+mod lib;
 use mempool::Pool;
 use packet::packets::{IPacket, CapPacket::CapPacket};
 use server::{Server, ServerWrapper};

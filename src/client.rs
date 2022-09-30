@@ -101,7 +101,7 @@ impl ClientTraits for Client {
 }
 
 impl Client {
-    pub async fn send<T: IPacketTrait>(&mut self, packet_header: &IPacket<PacketHeader>, packet: &T)
+    pub async fn send<T: IPacketTrait>(&self, packet_header: &IPacket<PacketHeader>, packet: &T)
     {
         let packet_header_size: usize = packet_header.packet_size as usize;
         let packet_size: usize = packet_header.packet.packet_size as usize;
@@ -113,8 +113,8 @@ impl Client {
             &packet.serialize()[..packet_size]
         );
 
-        println!("It's sending");
-        println!("{:?}", &raw_data[..(packet_header_size + packet_size)]);
+        // println!("It's sending");
+        // println!("{:?}", &raw_data[..(packet_header_size + packet_size)]);
         self.socket.lock().await
             .write_all(&raw_data[..(packet_header_size + packet_size)])
             .await
@@ -127,63 +127,5 @@ impl Client {
             .write_all(&data[..size])
             .await
             .expect("failed to write data to socket");
-    }
-
-
-    fn string_to_bytes<const SIZE: usize>(&self, data: String) -> [u8; SIZE] {
-        let mut returning_data: [u8; SIZE] = [0; SIZE];
-        let string_bytes = data.as_bytes();
-        returning_data[..string_bytes.len()].copy_from_slice(string_bytes);
-        return returning_data;
-    }
-    fn bytes_to_string(&self, data: &[u8]) -> String {
-        let end_pos = data.iter().position(|n| n == &0u8).unwrap();
-        String::from_utf8(data[..end_pos].to_vec()).unwrap()
-    }
-
-    pub fn copy(&self) -> Self {
-        let cloned_socket = self.socket.clone();
-        let mut new_client = Self::new(cloned_socket);
-        new_client.connected = self.connected;
-        new_client.id = self.id;
-        new_client.name = self.name.clone();
-
-        let mut costume_packet = None;
-        match &self.current_costume {
-            Some(x) => {
-                costume_packet = Some(x.copy());
-            },
-            _ => {}
-        }
-        new_client.current_costume = costume_packet;
-
-        let mut last_packet = None;
-        match &self.metadata.last_game_packet {
-            Some(x) => {
-                last_packet = Some(x.copy());
-            },
-            _ => {}
-        }
-        new_client.metadata = Metadata {
-            shine_sync: self.metadata.shine_sync.clone(),
-            loaded_save: self.metadata.loaded_save,
-            scenario: self.metadata.scenario,
-            is_2d: self.metadata.is_2d,
-            speedrun: self.metadata.speedrun,
-            last_game_packet: last_packet,
-            seeking: self.metadata.seeking,
-            time: Time {
-                minutes: self.metadata.time.minutes,
-                seconds: self.metadata.time.seconds,
-                when: self.metadata.time.when,
-            },
-        };
-        return new_client;
-    }
-}
-
-impl Clone for Client {
-    fn clone(&self) -> Self {
-        self.copy()
     }
 }
