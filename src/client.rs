@@ -125,7 +125,7 @@ impl Client {
         }
     }
 
-    pub async fn send_raw_data(&mut self, data: &[u8], size: usize) -> bool {
+    pub async fn send_raw_data(&self, data: &[u8], size: usize) -> bool {
         
         let result = self.socket.lock().await
             .write_all(&data[..size])

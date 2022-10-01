@@ -40,6 +40,6 @@ impl IPacketTrait for IPacket<GamePacket> {
     fn deserialize(&mut self, data: &[u8]) {
         self.packet.is_2d = self.byte_to_bool(data[0]);
         self.packet.scenario_num = data[1];
-        self.packet.stage = self.bytes_to_string(&data[2..]);
+        self.packet.stage = self.bytes_to_string(&data[2..SIZE]);
     }
 }

@@ -20,8 +20,8 @@ pub trait IPacketTrait {
     }
     fn string_to_bytes<const SIZE: usize>(&self, data: String) -> [u8; SIZE] {
         let mut returning_data: [u8; SIZE] = [0; SIZE];
-        let string_bytes = data.as_bytes();
-        returning_data[..string_bytes.len()].copy_from_slice(string_bytes);
+        let string_bytes = data.into_bytes();
+        returning_data[..string_bytes.len()].copy_from_slice(string_bytes.as_slice());
         return returning_data;
     }
     fn bytes_to_string(&self, data: &[u8]) -> String {

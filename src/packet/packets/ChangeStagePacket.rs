@@ -40,6 +40,8 @@ impl IPacketTrait for IPacket<ChangeStagePacket> {
         returning_data[(ID_SIZE + STAGE_SIZE)..(ID_SIZE + STAGE_SIZE + 1)].copy_from_slice(&self.packet.scenario.to_le_bytes());
         returning_data[(ID_SIZE + STAGE_SIZE + 1)..(ID_SIZE + STAGE_SIZE + 2)].copy_from_slice(&self.packet.sub_scenario_type.to_le_bytes());
 
+        println!("SERIALIZE CHANGE STAGE: {:?}", self.packet.id.to_string());
+
         return returning_data;
     }
     fn deserialize(&mut self, data: &[u8]) {
@@ -47,5 +49,7 @@ impl IPacketTrait for IPacket<ChangeStagePacket> {
         self.packet.id = self.bytes_to_string(&data[STAGE_SIZE..(ID_SIZE + STAGE_SIZE)]);
         self.packet.scenario = i8::from_le_bytes([data[(ID_SIZE + STAGE_SIZE)]; 1]);
         self.packet.sub_scenario_type = data[(ID_SIZE + STAGE_SIZE + 1)];
+
+        println!("DESERIALIZE CHANGE STAGE: {:?}", self.packet.stage);
     }
 }

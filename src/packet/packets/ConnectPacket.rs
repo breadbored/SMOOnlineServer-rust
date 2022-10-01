@@ -3,6 +3,7 @@ use crate::packet::packets::IPacket::{
     IPacket
 };
 
+#[derive(PartialEq)]
 #[repr(u16)]
 pub enum ConnectionTypes {
     FirstConnection = 0x0,
@@ -62,6 +63,6 @@ impl IPacketTrait for IPacket<ConnectPacket> {
         max_players_bytes.copy_from_slice(&data[4..6]);
         self.packet.max_players = u16::from_le_bytes(max_players_bytes);
 
-        self.packet.client_name = self.bytes_to_string(&data[6..]);
+        self.packet.client_name = self.bytes_to_string(&data[6..SIZE]);
     }
 }

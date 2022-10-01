@@ -121,6 +121,8 @@ impl ServerWrapper {
                 .read(&mut buffer)
                 .await;
             
+            println!("-------------------- NEW PACKET --------------------");
+            
             match bytes_result {
                 Ok(num_bytes) => {
                     if num_bytes == 0 {
@@ -132,37 +134,32 @@ impl ServerWrapper {
                     let mut packet_header = IPacket::<PacketHeader>::new();
                     packet_header.deserialize(&incoming_buffer[..packet_header.packet_size]);
 
-                    // TODO: Actually handle this... 
-                    // thread 'tokio-runtime-worker' panicked at 'range end index 15246 out of range for slice of length 1024', library/core/src/slice/index.rs:73:5
-                    // line 136
-                    // if type_to_packet_map(packet_header.packet.packet_type) == "UnhandledPacket" {
-                    //     println!("Error with an unhandled packet");
-                    //     continue;
-                    // }
-                    
-                    // println!("Packet Type: {:?}", type_to_packet_map(packet_header.packet.packet_type));
+                    // Handle UnhandledPackets up here
+                    // They have a packet size of 0 in the header and break later logic
+                    if type_to_packet_map(packet_header.packet.packet_type) == "UnhandledPacket" {
+                        println!("Unhandled Packet");
 
-                    let packet_data = &incoming_buffer[packet_header.packet_size..(packet_header.packet_size + (packet_header.packet.packet_size as usize))];
+                        // Should it send?
+                        ServerWrapper::broadcast_raw(
+                            server.clone(),
+                            &buffer,
+                            num_bytes,
+                            client.clone()
+                        ).await;
+
+                        continue;
+                    }
+
+                    if packet_header.packet_size > 1024 || packet_header.packet.packet_size > 1024 || packet_header.packet.packet_size as usize > 1024 {
+                        println!("Packet Type: {:?}", type_to_packet_map(packet_header.packet.packet_type));
+                        println!("Header Size: {:?}", packet_header.packet_size);
+                        println!("Packet Size: {:?}", packet_header.packet.packet_size);
+                    }
+
+                    let packet_data = &incoming_buffer[packet_header.packet_size..];
 
                     if first_connection || client.read().await.id != packet_header.packet.id {
                         client.write().await.id = packet_header.packet.id;
-
-                        // // Send Init packet to tell SMO Online it is connected
-                        // let mut init_packet = IPacket::<InitPacket>::new();
-                        // init_packet.packet.max_players = MAX_PLAYERS;
-
-                        // let mut packet_header = IPacket::<PacketHeader>::new();
-                        // packet_header.packet.id = client.read().await.id;
-                        // packet_header.packet.packet_size = init_packet.packet_size as i16;
-                        // packet_header.packet.packet_type = PacketType::Init;
-
-                        // let result = client.read().await.send(
-                        //     &packet_header,
-                        //     &init_packet
-                        // ).await;
-                        // if !result {
-                        //     client.write().await.connected = false;
-                        // }
 
                         // Handle init to add or replace in client list
                         let mut connect_packet = IPacket::<ConnectPacket>::new();
@@ -200,13 +197,17 @@ impl ServerWrapper {
                                 ServerWrapper::broadcast(server.clone(), &mut local_connect_packet, client.clone()).await;
                             },
                         }
+
+                        if connect_packet.packet.connection_type == ConnectionTypes::FirstConnection {
+                            ServerWrapper::sync_connect(server.clone(), client.clone()).await;
+                        }
                     }
 
                     // Set the client's Costume
                     // Typically after connecting the user has to die to get this to show to other clients
                     if packet_header.packet.packet_type == PacketType::Costume {
                         let mut costume_packet = IPacket::<CostumePacket>::new();
-                        costume_packet.deserialize(&incoming_buffer[packet_header.packet_size..(packet_header.packet_size + (packet_header.packet.packet_size as usize))]);
+                        costume_packet.deserialize(&incoming_buffer[packet_header.packet_size..]);
                         client.write().await.current_costume = Some(costume_packet.copy());
                     }
                     
@@ -508,6 +509,55 @@ impl ServerWrapper {
         }
     }
 
+    pub async fn sync_connect(server: Arc<RwLock<Server>>, client: Arc<RwLock<Client>>)
+    {
+        println!("sync_connect");
+
+        println!("Async To Player: {:?}", client.read().await.name);
+
+        let client_id = client.read().await.id;
+        let all_players = &server.read().await.clients;
+        let mut other_players: Vec<Arc<RwLock<Client>>> = Vec::new();
+        let num_players = all_players.len();
+        println!("Num Players: {:?}", num_players);
+        for i in 0..num_players {
+            let player = all_players[i].clone();
+            println!("Testing player if it is the client {:?}, {:?}", i, player.read().await.name);
+            if player.read().await.id != client_id {
+                println!("Testing player if it is connected {:?}, {:?}", i, player.read().await.name);
+                if player.read().await.connected {
+                    println!("Adding player {:?}, {:?}", i, player.read().await.name);
+                    other_players.push(player.clone());
+                }
+            }
+        }
+        for c in other_players {
+            println!("Sync From Player: {:?}", c.read().await.name);
+
+            let mut connect_packet = IPacket::<ConnectPacket>::new();
+            connect_packet.packet.client_name = c.read().await.name.as_str().to_string();
+            connect_packet.packet.connection_type = ConnectionTypes::FirstConnection;
+            connect_packet.packet.max_players = MAX_PLAYERS;
+
+            let packet_type_name = connect_packet.get_name().clone();
+            let packet_size_usize = connect_packet.get_size().to_owned();
+            let packet_type = packet_to_type_map(&packet_type_name);
+            let packet_size = packet_size_usize as i16;
+            
+            let mut packet_header = IPacket::<PacketHeader>::new();
+            packet_header.packet.id = client.read().await.id;
+            packet_header.packet.packet_type = packet_type;
+            packet_header.packet.packet_size = packet_size;
+
+            let result = client.read().await.send(&packet_header, &connect_packet).await;
+            if !result {
+                println!("{:?} disconnected due to client sync", c.read().await.name);
+                client.write().await.connected = false;
+            }
+        }
+        println!("Sent sync packets");
+    }
+
     pub async fn broadcast<T: IPacketTrait>(server: Arc<RwLock<Server>>, packet: &mut T, client: Arc<RwLock<Client>>)
     where T: IPacketTrait
     {
@@ -546,6 +596,39 @@ impl ServerWrapper {
         for c in other_players {
             println!("To Player: {:?}", c.read().await.name);
             let result = c.read().await.send(&packet_header, &copied_packet).await;
+            if !result {
+                println!("{:?} disconnected due to client", c.read().await.name);
+                c.write().await.connected = false;
+            }
+        }
+        println!("Sent packets");
+    }
+
+    pub async fn broadcast_raw(server: Arc<RwLock<Server>>, data: &[u8], size: usize, client: Arc<RwLock<Client>>)
+    {
+        println!("broadcast_raw");
+
+        println!("From Player: {:?}", client.read().await.name);
+
+        let client_id = client.read().await.id;
+        let all_players = &server.read().await.clients;
+        let mut other_players: Vec<Arc<RwLock<Client>>> = Vec::new();
+        let num_players = all_players.len();
+        println!("Num Players: {:?}", num_players);
+        for i in 0..num_players {
+            let player = all_players[i].clone();
+            println!("Testing player if it is the client {:?}, {:?}", i, player.read().await.name);
+            if player.read().await.id != client_id {
+                println!("Testing player if it is connected {:?}, {:?}", i, player.read().await.name);
+                if player.read().await.connected {
+                    println!("Adding player {:?}, {:?}", i, player.read().await.name);
+                    other_players.push(player.clone());
+                }
+            }
+        }
+        for c in other_players {
+            println!("To Player: {:?}", c.read().await.name);
+            let result = c.read().await.send_raw_data(data, size).await;
             if !result {
                 println!("{:?} disconnected due to client", c.read().await.name);
                 c.write().await.connected = false;
