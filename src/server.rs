@@ -134,22 +134,6 @@ impl ServerWrapper {
                     let mut packet_header = IPacket::<PacketHeader>::new();
                     packet_header.deserialize(&incoming_buffer[..packet_header.packet_size]);
 
-                    // Handle UnhandledPackets up here
-                    // They have a packet size of 0 in the header and break later logic
-                    if type_to_packet_map(packet_header.packet.packet_type) == "UnhandledPacket" {
-                        println!("Unhandled Packet");
-
-                        // Should it send?
-                        ServerWrapper::broadcast_raw(
-                            server.clone(),
-                            &buffer,
-                            num_bytes,
-                            client.clone()
-                        ).await;
-
-                        continue;
-                    }
-
                     if packet_header.packet_size > 1024 || packet_header.packet.packet_size > 1024 || packet_header.packet.packet_size as usize > 1024 {
                         println!("Packet Type: {:?}", type_to_packet_map(packet_header.packet.packet_type));
                         println!("Header Size: {:?}", packet_header.packet_size);
@@ -303,10 +287,12 @@ impl ServerWrapper {
                             ).await;
                         },
                         _ => {
-                            println!("Unknown Packet");
-                            // let mut packet_serialized = IPacket::<UnhandledPacket>::new();
-                            // packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..]);
-                            // ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
+                            ServerWrapper::broadcast_raw(
+                                server.clone(),
+                                &buffer,
+                                num_bytes,
+                                client.clone()
+                            ).await;
                         },
                     }
                 },
@@ -545,13 +531,13 @@ impl ServerWrapper {
             let packet_size = packet_size_usize as i16;
             
             let mut packet_header = IPacket::<PacketHeader>::new();
-            packet_header.packet.id = client.read().await.id;
+            packet_header.packet.id = c.read().await.id;
             packet_header.packet.packet_type = packet_type;
             packet_header.packet.packet_size = packet_size;
 
             let result = client.read().await.send(&packet_header, &connect_packet).await;
             if !result {
-                println!("{:?} disconnected due to client sync", c.read().await.name);
+                println!("{:?} disconnected due to client sync", client.read().await.name);
                 client.write().await.connected = false;
             }
         }
