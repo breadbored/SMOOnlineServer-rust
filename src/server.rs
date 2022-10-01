@@ -57,7 +57,7 @@ use crate::{
         PacketType::PacketType
     },
     constants::{
-        packet_to_type_map
+        packet_to_type_map, type_to_packet_map
     },
     settings::{
         MAX_PLAYERS, 
@@ -79,7 +79,7 @@ pub struct Server {
 
 impl ServerWrapper {
     pub async fn start(server: Arc<RwLock<Server>>, listener: TcpListener) -> Result<()> {
-        // println!("start");
+        println!("start");
         // Loop until new connection is made and spawn an async event loop
         loop {
             let (socket, socket_addr) = listener.accept().await?;
@@ -94,6 +94,7 @@ impl ServerWrapper {
     }
 
     async fn handle_request(server: Arc<RwLock<Server>>, socket: TcpStream) {
+        println!("handle_request");
         let mut first_connection = true;
 
         let socket_mutex = Arc::new(
@@ -106,6 +107,13 @@ impl ServerWrapper {
                 Client::new(socket_mutex)
             )
         );
+
+        let mut init_packet = IPacket::<InitPacket>::new();
+        init_packet.packet.max_players = MAX_PLAYERS;
+        let mut init_packet_header = IPacket::<PacketHeader>::new();
+        init_packet_header.packet.packet_size = init_packet.packet_size as i16;
+        init_packet_header.packet.packet_type = PacketType::Init;
+        client.read().await.send(&init_packet_header, &init_packet).await;
 
         loop {
             let mut buffer: [u8; 1024] = [0; 1024];
@@ -124,37 +132,58 @@ impl ServerWrapper {
                     let mut packet_header = IPacket::<PacketHeader>::new();
                     packet_header.deserialize(&incoming_buffer[..packet_header.packet_size]);
 
+                    // TODO: Actually handle this... 
+                    // thread 'tokio-runtime-worker' panicked at 'range end index 15246 out of range for slice of length 1024', library/core/src/slice/index.rs:73:5
+                    // line 136
+                    // if type_to_packet_map(packet_header.packet.packet_type) == "UnhandledPacket" {
+                    //     println!("Error with an unhandled packet");
+                    //     continue;
+                    // }
+                    
+                    // println!("Packet Type: {:?}", type_to_packet_map(packet_header.packet.packet_type));
+
                     let packet_data = &incoming_buffer[packet_header.packet_size..(packet_header.packet_size + (packet_header.packet.packet_size as usize))];
 
-                    if first_connection {
+                    if first_connection || client.read().await.id != packet_header.packet.id {
                         client.write().await.id = packet_header.packet.id;
 
-                        // Send Init packet to tell SMO Online it is connected
-                        let mut init_packet = IPacket::<InitPacket>::new();
-                        init_packet.packet.max_players = MAX_PLAYERS;
+                        // // Send Init packet to tell SMO Online it is connected
+                        // let mut init_packet = IPacket::<InitPacket>::new();
+                        // init_packet.packet.max_players = MAX_PLAYERS;
 
-                        let mut packet_header = IPacket::<PacketHeader>::new();
-                        packet_header.packet.id = client.read().await.id;
-                        packet_header.packet.packet_size = init_packet.packet_size as i16;
-                        packet_header.packet.packet_type = PacketType::Init;
+                        // let mut packet_header = IPacket::<PacketHeader>::new();
+                        // packet_header.packet.id = client.read().await.id;
+                        // packet_header.packet.packet_size = init_packet.packet_size as i16;
+                        // packet_header.packet.packet_type = PacketType::Init;
 
-                        client.read().await.send(
-                            &packet_header,
-                            &init_packet
-                        ).await;
+                        // let result = client.read().await.send(
+                        //     &packet_header,
+                        //     &init_packet
+                        // ).await;
+                        // if !result {
+                        //     client.write().await.connected = false;
+                        // }
 
                         // Handle init to add or replace in client list
                         let mut connect_packet = IPacket::<ConnectPacket>::new();
                         connect_packet.deserialize(packet_data);
-
+                        
                         match connect_packet.packet.connection_type {
                             ConnectionTypes::FirstConnection | ConnectionTypes::Reconnecting => {
+                                println!("First connection / reconnect");
+
+                                client.write().await.name = connect_packet.packet.client_name;
+                                client.write().await.connected = true;
+
+                                println!("Welcome, {:?}", client.read().await.name);
+
                                 let mut already_connected: bool = false;
                                 let mut connected_index: usize = 0;
                                 for i in  0..server.read().await.clients.len() {
                                     if server.read().await.clients[i].read().await.id == client.read().await.id {
                                         already_connected = true;
                                         connected_index = i;
+                                        break;
                                     }
                                 }
 
@@ -165,6 +194,10 @@ impl ServerWrapper {
                                 }
 
                                 first_connection = false;
+
+                                let mut local_connect_packet = IPacket::<ConnectPacket>::new();
+                                local_connect_packet.deserialize(packet_data);
+                                ServerWrapper::broadcast(server.clone(), &mut local_connect_packet, client.clone()).await;
                             },
                         }
                     }
@@ -176,6 +209,8 @@ impl ServerWrapper {
                         costume_packet.deserialize(&incoming_buffer[packet_header.packet_size..(packet_header.packet_size + (packet_header.packet.packet_size as usize))]);
                         client.write().await.current_costume = Some(costume_packet.copy());
                     }
+                    
+                    println!("{:?}", type_to_packet_map(packet_header.packet.packet_type));
 
                     match packet_header.packet.packet_type {
                         PacketType::Cap => {
@@ -275,7 +310,8 @@ impl ServerWrapper {
                     }
                 },
                 _ => {
-                    println!("Socket err");
+                    client.write().await.connected = false;
+                    return;
                 }
             }
         }
@@ -284,6 +320,7 @@ impl ServerWrapper {
 
 
     pub async fn packet_builder<T: IPacketTrait>(server: Arc<RwLock<Server>>, client: Arc<RwLock<Client>>, incoming_buffer: &[u8], packet_header: &mut IPacket<PacketHeader>) {
+        println!("packet_builder");
         let mut packet_serialized = T::new();
         packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
         let will_send = ServerWrapper::packet_handler(server.clone(), client.clone(), packet_header, packet_serialized).await;
@@ -299,7 +336,7 @@ impl ServerWrapper {
     async fn packet_handler<T: IPacketTrait>(server: Arc<RwLock<Server>>, client: Arc<RwLock<Client>>, packet_header: &mut IPacket<PacketHeader>, packet: T) -> bool
     where T: IPacketTrait
     {
-        // println!("packet_handler");
+        println!("packet_handler");
         match packet.get_name() {
             "GamePacket" => {
                 let mut copied_packet = IPacket::<GamePacket>::new();
@@ -342,6 +379,7 @@ impl ServerWrapper {
                         copied_packet,
                         client.clone(),
                         |_server: Arc<RwLock<Server>>, from: Arc<RwLock<Client>>, to: Arc<RwLock<Client>>, header: &mut IPacket<PacketHeader>, p: &mut IPacket<GamePacket>| {
+                            println!("anonymous 2");
                             let mut copied_packet_header = IPacket::<PacketHeader>::new();
                             copied_packet_header.deserialize(&header.serialize()[..header.get_size().to_owned()]);
                             let mut copied_packet = IPacket::<GamePacket>::new();
@@ -350,7 +388,10 @@ impl ServerWrapper {
                             return async move {
                                 copied_packet.packet.scenario_num = from.read().await.metadata.scenario;
 
-                                to.read().await.send(&copied_packet_header, &copied_packet).await;
+                                let result = to.read().await.send(&copied_packet_header, &copied_packet).await;
+                                if !result {
+                                    to.write().await.connected = false;
+                                }
                             };
                         }
                     ).await;
@@ -407,6 +448,7 @@ impl ServerWrapper {
                         player_packet,
                         client.clone(),
                         |server: Arc<RwLock<Server>>, from: Arc<RwLock<Client>>, to: Arc<RwLock<Client>>, header: &mut IPacket<PacketHeader>, p: &mut IPacket<PlayerPacket>| {
+                            println!("anonymous 1");
                             let mut copied_packet_header = IPacket::<PacketHeader>::new();
                             copied_packet_header.deserialize(&header.serialize()[..header.get_size().to_owned()]);
                             let mut copied_packet = IPacket::<PlayerPacket>::new();
@@ -418,7 +460,10 @@ impl ServerWrapper {
                                     copied_packet.packet.rotation *= Quaternion::<f32>::create_from_rotation_matrix_x() * Quaternion::<f32>::create_from_rotation_matrix_y();
                                 }
 
-                                to.read().await.send(&copied_packet_header, &copied_packet).await;
+                                let result = to.read().await.send(&copied_packet_header, &copied_packet).await;
+                                if !result {
+                                    to.write().await.connected = false;
+                                }
                             };
                         }
                     ).await;
@@ -449,6 +494,7 @@ impl ServerWrapper {
     where T: IPacketTrait,
             Fut: Future<Output = ()>
     {
+        println!("broadcast_replace");
         let clients_iterable = &server.read().await.clients;
         for c_index in 0..clients_iterable.len() {
             let local_client = &clients_iterable[c_index];
@@ -465,6 +511,7 @@ impl ServerWrapper {
     pub async fn broadcast<T: IPacketTrait>(server: Arc<RwLock<Server>>, packet: &mut T, client: Arc<RwLock<Client>>)
     where T: IPacketTrait
     {
+        println!("broadcast");
         let mut copied_packet = T::new();
         copied_packet.deserialize(&packet.serialize()[..packet.get_size().to_owned()]);
 
@@ -478,20 +525,37 @@ impl ServerWrapper {
         packet_header.packet.packet_type = packet_type;
         packet_header.packet.packet_size = packet_size;
 
+        println!("From Player: {:?}", client.read().await.name);
+
         let client_id = client.read().await.id;
-        let clients = &server.read().await.clients;
-        let other_players: Vec<_> = clients.iter().filter(|p| {
-            p.blocking_read().id != client_id
-        }).cloned().collect();
-        for c in other_players {
-            if c.read().await.id != client_id {
-                c.read().await.send(&packet_header, &copied_packet).await;
+        let all_players = &server.read().await.clients;
+        let mut other_players: Vec<Arc<RwLock<Client>>> = Vec::new();
+        let num_players = all_players.len();
+        println!("Num Players: {:?}", num_players);
+        for i in 0..num_players {
+            let player = all_players[i].clone();
+            println!("Testing player if it is the client {:?}, {:?}", i, player.read().await.name);
+            if player.read().await.id != client_id {
+                println!("Testing player if it is connected {:?}, {:?}", i, player.read().await.name);
+                if player.read().await.connected {
+                    println!("Adding player {:?}, {:?}", i, player.read().await.name);
+                    other_players.push(player.clone());
+                }
             }
         }
+        for c in other_players {
+            println!("To Player: {:?}", c.read().await.name);
+            let result = c.read().await.send(&packet_header, &copied_packet).await;
+            if !result {
+                println!("{:?} disconnected due to client", c.read().await.name);
+                c.write().await.connected = false;
+            }
+        }
+        println!("Sent packets");
     }
 
     fn mario_size(is_2d: bool) -> f32 {
-        // println!("mario_size");
+        println!("mario_size");
         if is_2d {
             return 180.0;
         }

@@ -101,7 +101,7 @@ impl ClientTraits for Client {
 }
 
 impl Client {
-    pub async fn send<T: IPacketTrait>(&self, packet_header: &IPacket<PacketHeader>, packet: &T)
+    pub async fn send<T: IPacketTrait>(&self, packet_header: &IPacket<PacketHeader>, packet: &T) -> bool
     {
         let packet_header_size: usize = packet_header.packet_size as usize;
         let packet_size: usize = packet_header.packet.packet_size as usize;
@@ -115,17 +115,25 @@ impl Client {
 
         // println!("It's sending");
         // println!("{:?}", &raw_data[..(packet_header_size + packet_size)]);
-        self.socket.lock().await
+        let result = self.socket.lock().await
             .write_all(&raw_data[..(packet_header_size + packet_size)])
-            .await
-            .expect("failed to write data to socket");
+            .await;
+        
+        return match result {
+            Ok(_) => true,
+            Err(_) => false,
+        }
     }
 
-    pub async fn send_raw_data(&mut self, data: &[u8], size: usize) {
+    pub async fn send_raw_data(&mut self, data: &[u8], size: usize) -> bool {
         
-        self.socket.lock().await
+        let result = self.socket.lock().await
             .write_all(&data[..size])
-            .await
-            .expect("failed to write data to socket");
+            .await;
+        
+        return match result {
+            Ok(_) => true,
+            Err(_) => false,
+        }
     }
 }
