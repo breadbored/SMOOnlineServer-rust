@@ -305,7 +305,7 @@ impl ServerWrapper {
                         _ => {
                             println!("Unknown Packet");
                             // let mut packet_serialized = IPacket::<UnhandledPacket>::new();
-                            // packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
+                            // packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..]);
                             // ServerWrapper::packet_handler(server.clone(), client.clone(), packet_serialized).await;
                         },
                     }
@@ -323,13 +323,13 @@ impl ServerWrapper {
     pub async fn packet_builder<T: IPacketTrait>(server: Arc<RwLock<Server>>, client: Arc<RwLock<Client>>, incoming_buffer: &[u8], packet_header: &mut IPacket<PacketHeader>) {
         println!("packet_builder");
         let mut packet_serialized = T::new();
-        packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
+        packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..]);
         let will_send = ServerWrapper::packet_handler(server.clone(), client.clone(), packet_header, packet_serialized).await;
 
         if will_send {
             // TODO: Implement Copy on packets so I don't need to copy and paste this so often
             let mut packet_serialized = T::new();
-            packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..(PACKET_HEADER_SIZE + packet_header.packet.packet_size as usize)]);
+            packet_serialized.deserialize(&incoming_buffer[PACKET_HEADER_SIZE..]);
             ServerWrapper::broadcast(server.clone(), &mut packet_serialized, client.clone()).await;
         }
     }
