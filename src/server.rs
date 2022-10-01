@@ -131,8 +131,27 @@ impl ServerWrapper {
 
                     let incoming_buffer = &buffer[..num_bytes];
 
+                    if num_bytes < 20 {
+                        println!("BYTES DEBUG: {:?}", incoming_buffer);
+                    }
                     let mut packet_header = IPacket::<PacketHeader>::new();
                     packet_header.deserialize(&incoming_buffer[..packet_header.packet_size]);
+
+                    // Handle UnhandledPackets up here
+                    // They have a packet size of 0 in the header and break later logic
+                    if type_to_packet_map(packet_header.packet.packet_type) == "UnhandledPacket" || type_to_packet_map(packet_header.packet.packet_type) == "CommandPacket" {
+                        println!("Handling {:?}", type_to_packet_map(packet_header.packet.packet_type));
+
+                        // Should it send?
+                        ServerWrapper::broadcast_raw(
+                            server.clone(),
+                            &buffer,
+                            num_bytes,
+                            client.clone()
+                        ).await;
+
+                        continue;
+                    }
 
                     if packet_header.packet_size > 1024 || packet_header.packet.packet_size > 1024 || packet_header.packet.packet_size as usize > 1024 {
                         println!("Packet Type: {:?}", type_to_packet_map(packet_header.packet.packet_type));
@@ -142,48 +161,50 @@ impl ServerWrapper {
 
                     let packet_data = &incoming_buffer[packet_header.packet_size..];
 
-                    if first_connection || client.read().await.id != packet_header.packet.id {
+                    if first_connection {
                         client.write().await.id = packet_header.packet.id;
 
-                        // Handle init to add or replace in client list
-                        let mut connect_packet = IPacket::<ConnectPacket>::new();
-                        connect_packet.deserialize(packet_data);
-                        
-                        match connect_packet.packet.connection_type {
-                            ConnectionTypes::FirstConnection | ConnectionTypes::Reconnecting => {
-                                println!("First connection / reconnect");
+                        if type_to_packet_map(packet_header.packet.packet_type) == "ConnectPacket" {
+                            // Handle init to add or replace in client list
+                            let mut connect_packet = IPacket::<ConnectPacket>::new();
+                            connect_packet.deserialize(packet_data);
+                            
+                            match connect_packet.packet.connection_type {
+                                ConnectionTypes::FirstConnection | ConnectionTypes::Reconnecting => {
+                                    println!("First connection / reconnect");
 
-                                client.write().await.name = connect_packet.packet.client_name;
-                                client.write().await.connected = true;
+                                    client.write().await.name = connect_packet.packet.client_name;
+                                    client.write().await.connected = true;
 
-                                println!("Welcome, {:?}", client.read().await.name);
+                                    println!("Welcome, {:?}", client.read().await.name);
 
-                                let mut already_connected: bool = false;
-                                let mut connected_index: usize = 0;
-                                for i in  0..server.read().await.clients.len() {
-                                    if server.read().await.clients[i].read().await.id == client.read().await.id {
-                                        already_connected = true;
-                                        connected_index = i;
-                                        break;
+                                    let mut already_connected: bool = false;
+                                    let mut connected_index: usize = 0;
+                                    for i in  0..server.read().await.clients.len() {
+                                        if server.read().await.clients[i].read().await.id == client.read().await.id {
+                                            already_connected = true;
+                                            connected_index = i;
+                                            break;
+                                        }
                                     }
-                                }
 
-                                if already_connected {
-                                    server.write().await.clients[connected_index] = client.clone();
-                                } else {
-                                    server.write().await.clients.push(client.clone());
-                                }
+                                    if already_connected {
+                                        server.write().await.clients[connected_index] = client.clone();
+                                    } else {
+                                        server.write().await.clients.push(client.clone());
+                                    }
 
-                                first_connection = false;
+                                    first_connection = false;
 
-                                let mut local_connect_packet = IPacket::<ConnectPacket>::new();
-                                local_connect_packet.deserialize(packet_data);
-                                ServerWrapper::broadcast(server.clone(), &mut local_connect_packet, client.clone()).await;
-                            },
-                        }
+                                    let mut local_connect_packet = IPacket::<ConnectPacket>::new();
+                                    local_connect_packet.deserialize(packet_data);
+                                    ServerWrapper::broadcast(server.clone(), &mut local_connect_packet, client.clone()).await;
+                                },
+                            }
 
-                        if connect_packet.packet.connection_type == ConnectionTypes::FirstConnection {
-                            ServerWrapper::sync_connect(server.clone(), client.clone()).await;
+                            if connect_packet.packet.connection_type == ConnectionTypes::FirstConnection {
+                                ServerWrapper::sync_connect(server.clone(), client.clone()).await;
+                            }
                         }
                     }
 
