@@ -25,8 +25,23 @@ pub trait IPacketTrait {
         return returning_data;
     }
     fn bytes_to_string(&self, data: &[u8]) -> String {
-        let end_pos = data.iter().position(|n| n == &0u8).unwrap();
-        String::from_utf8(data[..end_pos].to_vec()).unwrap()
+        let end_pos_result = data.iter().position(|n| n == &0u8);
+        let string_result = match end_pos_result {
+            Some(end_pos) => {
+                String::from_utf8(data[..end_pos].to_vec())
+            },
+            None => {
+                String::from_utf8(data.to_vec())
+            }
+        };
+
+        return match string_result {
+            Ok(string) => string,
+            Err(err) => {
+                let up_to = err.utf8_error().valid_up_to();
+                self.bytes_to_string(&data[..up_to])
+            },
+        }
     }
     fn bytes_to_vec3(&self, data: &[u8]) -> Vector3<f32> {
         let mut pos_x: [u8; 4] = [0; 4];
